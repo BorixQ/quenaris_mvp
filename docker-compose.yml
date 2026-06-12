@@ -1,0 +1,132 @@
+# =============================================================================
+# GeoInsight SaaS — Orquestación de servicios
+# Servicios: PostGIS, Redis, Django (web), Celery (worker), Frontend estático
+# Despliegue: VPS Linux (Debian/Fedora) con Docker Engine + Compose v2
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Base de datos espacial
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: geoinsight_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-geoinsight}
+      POSTGRES_USER: ${POSTGRES_USER:-geoinsight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-geoinsight} -d ${POSTGRES_DB:-geoinsight}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [backend_net]
+
+  # ---------------------------------------------------------------------------
+  # Broker de mensajes y backend de resultados para Celery
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: geoinsight_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [backend_net]
+
+  # ---------------------------------------------------------------------------
+  # Servidor web Django (API REST + admin)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: geoinsight_web
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgis://${POSTGRES_USER:-geoinsight}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-geoinsight}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - ./backend:/app
+      - ./credentials:/credentials:ro
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [backend_net]
+
+  # ---------------------------------------------------------------------------
+  # Worker Celery — pipeline geoespacial (GEE + scikit-learn)
+  # Sin puertos expuestos. Concurrencia baja: cada tarea es pesada en RAM/CPU.
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: geoinsight_worker
+    restart: unless-stopped
+    command: celery -A config worker --loglevel=info --concurrency=2 --max-tasks-per-child=10
+    env_file: .env
+    environment:
+      DATABASE_URL: postgis://${POSTGRES_USER:-geoinsight}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-geoinsight}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - ./backend:/app
+      - ./credentials:/credentials:ro
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [backend_net]
+
+  # ---------------------------------------------------------------------------
+  # Frontend estático (dashboard MapLibre). En producción, sustituir por
+  # Nginx + certbot o servirlo desde un CDN.
+  # ---------------------------------------------------------------------------
+  frontend:
+    image: nginx:alpine
+    container_name: geoinsight_frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Rásters de mapa de calor y ortomosaicos: montados FUERA del root de solo
+      # lectura (no se puede anidar un montaje dentro de un bind :ro). nginx los
+      # sirve en /media/ vía alias.
+      - media_data:/srv/media:ro
+    ports:
+      - "8080:80"
+    depends_on: [web]
+    networks: [backend_net]
+
+volumes:
+  pgdata:
+  redisdata:
+  media_data:
+  # La clave de GEE ya no usa volumen con nombre: se monta ./credentials (bind).
+  # Coloca el JSON de la service account en ./credentials/gee-sa-key.json
+
+networks:
+  backend_net:
+    driver: bridge

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quenaris — Geoanálisis</title>
+
+  <link rel="stylesheet" href="app.css" />
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <link href="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js"></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    .workspace { display:grid; grid-template-columns: 384px 1fr; height: calc(100vh - 60px); }
+    .panel { overflow-y:auto; border-right:1px solid var(--line); background:var(--bg-1); padding:20px; }
+    #map { height:100%; position:relative; }
+    .seg { display:flex; gap:6px; margin:6px 0 2px; }
+    .seg button { flex:1; padding:9px; font-family:var(--font-mono); font-size:12px; border:1px solid var(--line);
+      background:var(--bg-2); border-radius:8px; cursor:pointer; font-weight:600; color:var(--muted); transition:.15s; }
+    .seg button.on { background:rgba(52,211,153,.12); color:var(--green); border-color:var(--green); }
+    .filebox { border:1.5px dashed var(--line); border-radius:10px; padding:14px; text-align:center; background:var(--bg-2); }
+    .csvspec { font-size:12px; color:var(--muted); background:var(--bg-2); border:1px solid var(--line);
+      border-radius:8px; padding:10px; margin-top:8px; line-height:1.55; }
+    .csvspec code { background:var(--bg-0); color:var(--cyan); padding:1px 5px; border-radius:4px; font-family:var(--font-mono); }
+    .kv { display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
+    .kv span { color:var(--muted); font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+    .kv b { color:var(--ink); font-size:13px; font-weight:600; text-align:right; }
+    #status { margin-top:14px; font-size:13px; min-height:18px; font-family:var(--font-mono); color:var(--muted); }
+    .links a { display:inline-block; margin:10px 12px 0 0; font-family:var(--font-mono); font-weight:600; font-size:13px; }
+
+    /* Panel flotante del mapa de calor (glass oscuro) */
+    .hm { position:absolute; z-index:10; left:50%; transform:translateX(-50%); bottom:18px; width:min(640px,92%);
+      background:rgba(13,20,32,.92); backdrop-filter:blur(12px); border:1px solid var(--line-bright);
+      border-radius:12px; padding:12px 16px; display:none; }
+    .hm.show { display:block; }
+    .hmclose { position:absolute; top:6px; right:9px; background:none; border:0; color:var(--muted);
+      cursor:pointer; font-size:13px; line-height:1; padding:2px; }
+    .hmclose:hover { color:var(--green); }
+    .hm .row { display:flex; align-items:center; gap:10px; }
+    .hm .idxbtns { display:flex; flex-wrap:wrap; gap:5px; max-width:460px; }
+    .hm .idxbtns button { padding:5px 9px; font-family:var(--font-mono); font-size:11px; border:1px solid var(--line);
+      background:var(--bg-2); color:var(--muted); border-radius:7px; cursor:pointer; font-weight:600; }
+    .hm .idxbtns button.on { background:rgba(56,217,240,.15); color:var(--cyan); border-color:var(--cyan); }
+    .hm input[type=range] { width:100%; accent-color:var(--green); }
+    .hm .tlabel { font-family:var(--font-mono); font-size:13px; font-weight:600; min-width:78px; text-align:right; color:var(--cyan); }
+    .legend-bar { height:12px; border-radius:6px; flex:1;
+      background:linear-gradient(90deg,#b5651d,#d9a441,#9acd32,#34d399); }
+    .legend-ends { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); font-family:var(--font-mono); }
+  </style>
+</head>
+<body>
+  <div id="nav" data-active="geoanalisis"></div>
+
+  <div class="workspace">
+    <aside class="panel">
+      <h1 class="page" style="font-size:20px;">Geoanálisis</h1>
+      <p class="sub">Define un Área de Interés, procesa índices satelitales y visualiza su evolución.</p>
+
+      <label class="fld">Cargar análisis previo</label>
+      <select id="prevAnalyses"><option value="">— Nuevo análisis —</option></select>
+
+      <!-- MODO VER: análisis previo (solo lectura) -->
+      <div id="viewInfo" style="display:none;">
+        <div id="viewFields"></div>
+        <button class="btn" id="newAnalysis" style="width:100%; margin-top:16px;">+ Nuevo análisis</button>
+      </div>
+
+      <!-- MODO CREAR: definir y procesar un análisis nuevo -->
+      <div id="createControls">
+      <label class="fld">Nombre del análisis</label>
+      <input type="text" id="analysisName" placeholder="Ej: Queñua — Ladera norte" maxlength="120" />
+
+      <label class="fld">Definir el Área de Interés</label>
+      <div class="seg">
+        <button id="mDraw" class="on">✎ Dibujar</button>
+        <button id="mCsv">⬆ Cargar CSV</button>
+      </div>
+
+      <div id="drawHelp" class="hint" style="margin-top:6px;">
+        Usa la herramienta de polígono (arriba a la derecha) para marcar los vértices.
+        Al terminar, <b>arrastra los vértices</b> para ajustar; usa la papelera para borrar.
+      </div>
+
+      <div id="csvBox" style="display:none;">
+        <div class="filebox">
+          <input type="file" id="csvFile" accept=".csv,text/csv" />
+        </div>
+        <div class="csvspec">
+          <b>Formato del CSV</b><br>
+          • Una fila por vértice, en orden (el anillo se cierra solo).<br>
+          • Columnas: <code>lon,lat</code> (también acepta <code>longitud,latitud</code> o <code>x,y</code>).<br>
+          • <b>Sistema de referencia:</b> WGS84 — EPSG:4326.<br>
+          • <b>Unidades:</b> grados decimales. Este (+) / Oeste (−), Norte (+) / Sur (−).<br>
+          • Ej: <code>-72.012, -37.498</code><br>
+          • Mínimo 3 vértices.
+        </div>
+      </div>
+
+      <label class="fld">Tipo de estudio</label>
+      <select id="studyType">
+        <option value="agro">🌱 Agricultura de precisión</option>
+        <option value="solar" disabled>☀️ Energía solar (próximamente)</option>
+        <option value="mineria" disabled>⛏️ Suelos y minería (próximamente)</option>
+      </select>
+
+      <label class="fld">Índices del estudio
+        <button type="button" id="idxEdit" style="float:right; background:none; border:0; color:var(--cyan);
+          font-family:var(--font-mono); font-size:10px; cursor:pointer;">EDITAR ▾</button></label>
+      <div id="idxSummary" class="hint" style="margin-top:2px;"></div>
+      <div id="idxList" style="display:none; max-height:180px; overflow:auto; border:1px solid var(--line);
+        border-radius:8px; padding:8px; margin-top:6px;"></div>
+
+      <label class="fld">Fecha inicio</label>
+      <input type="date" id="dateStart" value="2025-01-01" />
+      <label class="fld">Fecha fin</label>
+      <input type="date" id="dateEnd" value="2025-06-30" />
+
+      <label class="fld">Algoritmo de clustering</label>
+      <select id="algorithm">
+        <option value="kmeans">K-Means</option>
+        <option value="dbscan">DBSCAN</option>
+        <option value="hdbscan">HDBSCAN (densidad)</option>
+      </select>
+      <label class="fld" id="nClustersLabel">Nº de clusters (K-Means)</label>
+      <input type="number" id="nClusters" value="4" min="2" max="8" />
+
+      <label class="fld" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="usePca" style="width:auto;"> Reducir colinealidad (PCA)
+      </label>
+
+      <button class="btn" id="run" style="width:100%; margin-top:18px;" disabled>Procesar área</button>
+      </div><!-- /createControls -->
+
+      <div class="spinner" id="spinner" style="display:none;"></div>
+      <div id="status"></div>
+      <div class="links" id="links"></div>
+      <button class="btn ghost" id="hmToggle" style="display:none; width:100%; margin-top:14px;">
+        ▾ Ocultar capas de índices
+      </button>
+    </aside>
+
+    <div id="map">
+      <!-- Panel flotante del mapa de calor (aparece tras procesar) -->
+      <div class="hm" id="hm">
+        <button id="hmClose" class="hmclose" title="Ocultar">✕</button>
+        <div class="row" style="justify-content:space-between; margin-bottom:8px;">
+          <div class="idxbtns" id="idxBtns"></div>
+          <label style="font-size:12px; color:var(--muted);">Opacidad
+            <input type="range" id="opacity" min="0" max="100" value="75" style="width:90px; vertical-align:middle;">
+          </label>
+        </div>
+        <div class="row">
+          <input type="range" id="timeSlider" min="0" max="0" value="0" step="1">
+          <span class="tlabel" id="timeLabel">—</span>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <span class="legend-ends" style="min-width:78px;">bajo</span>
+          <div class="legend-bar"></div>
+          <span class="legend-ends" style="min-width:40px; text-align:left;">alto</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>requireAuth();</script>
+  <script src="nav.js"></script>
+  <script src="geoanalisis.js"></script>
+</body>
+</html>

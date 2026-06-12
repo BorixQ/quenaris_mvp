@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quenaris — Inicio</title>
+  <link rel="stylesheet" href="app.css" />
+  <style>
+    .hero { position:relative; overflow:hidden; border:1px solid var(--line); border-radius:16px;
+      padding:46px 44px; display:grid; grid-template-columns:1.05fr .95fr; gap:24px; align-items:center;
+      background:
+        radial-gradient(700px 360px at 92% 6%, rgba(56,217,240,.16), transparent 60%),
+        radial-gradient(620px 320px at -5% 100%, rgba(52,211,153,.14), transparent 60%),
+        var(--bg-2); }
+    .hero .tag { font-family:var(--font-mono); font-size:12px; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--green); display:flex; align-items:center; gap:9px; }
+    .hero h1 { font-family:var(--font-display); font-weight:700; font-size:38px; line-height:1.08;
+      margin:16px 0 14px; letter-spacing:.01em; }
+    .hero h1 em { font-style:normal; color:var(--green); }
+    .hero p { font-size:16px; color:#b9c6cf; line-height:1.65; margin:0 0 24px; }
+    .hero .btn { margin-right:10px; }
+    .readouts { display:flex; gap:26px; margin-top:26px; flex-wrap:wrap; }
+    .readout .n { font-family:var(--font-mono); font-size:22px; font-weight:600; color:var(--cyan); }
+    .readout .l { font-family:var(--font-mono); font-size:10.5px; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--muted); }
+    .hero-art { width:100%; height:auto; }
+
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:24px; }
+    .feature .ico { width:42px; height:42px; margin-bottom:10px; }
+    .feature h3 { font-family:var(--font-display); margin:0 0 6px; font-size:17px; color:var(--ink);
+      display:flex; align-items:center; gap:8px; }
+    .feature p { margin:0; color:var(--muted); font-size:13.5px; line-height:1.6; }
+    .soon { font-family:var(--font-mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+      color:var(--amber); border:1px solid rgba(245,165,36,.4); border-radius:5px; padding:2px 6px; }
+
+    .caps { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:14px; }
+    .cap { display:flex; gap:10px; align-items:flex-start; }
+    .cap svg { width:22px; height:22px; flex:none; margin-top:1px; }
+    .cap b { font-family:var(--font-display); font-size:14px; display:block; }
+    .cap span { color:var(--muted); font-size:12px; line-height:1.5; }
+
+    .domains { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:14px; }
+    .domain { border-left:3px solid var(--cyan); }
+    .domain h3 { font-family:var(--font-display); font-size:15px; margin:0 0 6px;
+      display:flex; align-items:center; gap:8px; justify-content:space-between; }
+    .quote { text-align:center; padding:32px; font-family:var(--font-display); font-size:20px;
+      font-weight:600; color:var(--ink); letter-spacing:.01em; }
+    .quote span { color:var(--green); }
+    a.card { color:inherit; text-decoration:none; display:block; transition:.18s; }
+    a.card:hover { border-color:var(--line-bright); transform:translateY(-3px); box-shadow:var(--glow); }
+    @media (max-width:900px){ .hero{grid-template-columns:1fr;} .grid3,.domains,.caps{grid-template-columns:1fr;} .hero h1{font-size:30px;} }
+  </style>
+</head>
+<body>
+  <div id="nav" data-active="inicio"></div>
+
+  <div class="container">
+    <!-- HERO -->
+    <section class="hero card hud">
+      <div>
+        <div class="tag"><span class="dot"></span>QUENARIS · INTELIGENCIA GEOESPACIAL</div>
+        <h1>El campo no es uniforme. <em>Sus datos tampoco</em> deberían serlo.</h1>
+        <p>Convertimos imágenes satelitales multiespectrales en decisiones por zona:
+           más de 20 índices ecofisiológicos, un score de aptitud multicriterio y zonas
+           de manejo priorizadas — visualizadas sobre el relieve y resumidas por IA.</p>
+        <a class="btn" href="geoanalisis.html">▸ INICIAR GEOANÁLISIS</a>
+        <a class="btn ghost" href="informes.html">VER INFORMES</a>
+        <div class="readouts">
+          <div class="readout"><div class="n">20+</div><div class="l">Índices</div></div>
+          <div class="readout"><div class="n">0–100</div><div class="l">Aptitud</div></div>
+          <div class="readout"><div class="n">Sentinel-2</div><div class="l">Multiespectral</div></div>
+          <div class="readout"><div class="n">3D</div><div class="l">Sobre relieve</div></div>
+        </div>
+      </div>
+
+      <!-- Ilustración: barrido satelital sobre un AOI con mapa de aptitud y relieve -->
+      <svg class="hero-art" viewBox="0 0 520 360" xmlns="http://www.w3.org/2000/svg" aria-label="Análisis geoespacial">
+        <defs>
+          <linearGradient id="heat" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#b5651d"/><stop offset=".5" stop-color="#f5a524"/>
+            <stop offset="1" stop-color="#34d399"/>
+          </linearGradient>
+          <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#38d9f0" stop-opacity=".55"/>
+            <stop offset="1" stop-color="#38d9f0" stop-opacity="0"/>
+          </linearGradient>
+          <radialGradient id="g2" cx="50%" cy="30%" r="70%">
+            <stop offset="0" stop-color="#38d9f0" stop-opacity=".12"/>
+            <stop offset="1" stop-color="#38d9f0" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="520" height="360" fill="url(#g2)"/>
+        <!-- plano de terreno en perspectiva -->
+        <g stroke="rgba(120,170,190,.18)" stroke-width="1" fill="none">
+          <path d="M70 300 L450 300 L500 360 L20 360 Z" fill="rgba(13,20,32,.5)"/>
+          <line x1="20" y1="360" x2="70" y2="300"/><line x1="135" y1="360" x2="165" y2="300"/>
+          <line x1="260" y1="360" x2="260" y2="300"/><line x1="385" y1="360" x2="355" y2="300"/>
+          <line x1="500" y1="360" x2="450" y2="300"/>
+          <line x1="48" y1="324" x2="472" y2="324"/><line x1="34" y1="344" x2="486" y2="344"/>
+        </g>
+        <!-- AOI con mapa de aptitud (manta) -->
+        <path d="M150 250 L300 232 L360 270 L330 318 L200 330 L140 296 Z"
+              fill="url(#heat)" fill-opacity=".82" stroke="#0b1018" stroke-width="1.5"/>
+        <path d="M150 250 L300 232 L360 270 L330 318 L200 330 L140 296 Z"
+              fill="none" stroke="#34d399" stroke-width="1" stroke-opacity=".5"/>
+        <!-- haz de barrido -->
+        <path d="M398 70 L360 270 L330 318 L398 70 Z" fill="url(#beam)"/>
+        <!-- satélite -->
+        <g transform="translate(398 70)">
+          <rect x="-9" y="-7" width="18" height="14" rx="2" fill="#0d1420" stroke="#38d9f0" stroke-width="1.5"/>
+          <rect x="-30" y="-4" width="18" height="8" rx="1" fill="#0d1420" stroke="#38d9f0" stroke-width="1.2"/>
+          <rect x="12" y="-4" width="18" height="8" rx="1" fill="#0d1420" stroke="#38d9f0" stroke-width="1.2"/>
+          <line x1="-21" y1="-4" x2="-21" y2="4" stroke="#38d9f0" stroke-width="1"/>
+          <line x1="21" y1="-4" x2="21" y2="4" stroke="#38d9f0" stroke-width="1"/>
+          <circle cx="0" cy="0" r="3" fill="#34d399"/>
+        </g>
+        <!-- órbita -->
+        <path d="M120 40 Q300 0 470 90" fill="none" stroke="rgba(56,217,240,.35)" stroke-width="1" stroke-dasharray="4 5"/>
+        <!-- HUD labels -->
+        <g font-family="'JetBrains Mono', monospace" font-size="10" fill="#8395a3">
+          <text x="150" y="222" fill="#34d399">APTITUD 0–100</text>
+          <text x="36" y="36">// QUENARIS · S2</text>
+          <circle cx="150" cy="343" r="3" fill="#34d399"/><text x="160" y="346">ÓPTIMO</text>
+          <circle cx="240" cy="343" r="3" fill="#f5a524"/><text x="250" y="346">MEDIA</text>
+          <circle cx="320" cy="343" r="3" fill="#b5651d"/><text x="330" y="346">BAJA</text>
+        </g>
+        <!-- corner brackets -->
+        <g stroke="var(--line-bright)" stroke-width="2" fill="none">
+          <path d="M16 24 L16 14 L26 14"/><path d="M504 24 L504 14 L494 14"/>
+        </g>
+      </svg>
+    </section>
+
+    <!-- TRES PILARES -->
+    <div class="grid3">
+      <a href="geoanalisis.html" class="card hud pad feature">
+        <svg class="ico" viewBox="0 0 48 48" fill="none" stroke="#34d399" stroke-width="2">
+          <rect x="20" y="20" width="10" height="8" rx="1" transform="rotate(45 25 24)"/>
+          <rect x="9" y="22" width="9" height="5" rx="1" transform="rotate(45 13 24)"/>
+          <rect x="30" y="22" width="9" height="5" rx="1" transform="rotate(45 35 24)"/>
+          <path d="M24 30 L24 40 M18 40 L30 40" stroke-linecap="round"/>
+          <path d="M33 13 a8 8 0 0 1 4 4" stroke="#38d9f0"/>
+        </svg>
+        <h3>Satélite multiespectral</h3>
+        <p>Sentinel-2 sin nubes. Más de 20 índices de vegetación, agua, <b>salinidad</b>,
+           suelo y topografía, con su evolución mes a mes.</p>
+      </a>
+      <a href="geoanalisis.html" class="card hud pad feature">
+        <svg class="ico" viewBox="0 0 48 48" fill="none" stroke="#f5a524" stroke-width="2">
+          <circle cx="24" cy="24" r="4"/>
+          <path d="M24 20 L24 12 M24 28 L24 36 M20 24 L12 24 M28 24 L36 24" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="5"/><circle cx="36" cy="12" r="5"/>
+          <circle cx="12" cy="36" r="5"/><circle cx="36" cy="36" r="5"/>
+        </svg>
+        <h3>Escala de dron <span class="soon">En desarrollo</span></h3>
+        <p>Ortomosaicos RGB de altísima resolución para análisis a nivel de planta,
+           evolucionando a sensores multiespectrales.</p>
+      </a>
+      <a href="informes.html" class="card hud pad feature">
+        <svg class="ico" viewBox="0 0 48 48" fill="none" stroke="#38d9f0" stroke-width="2">
+          <circle cx="14" cy="16" r="3"/><circle cx="34" cy="12" r="3"/><circle cx="36" cy="32" r="3"/>
+          <circle cx="16" cy="34" r="3"/><circle cx="25" cy="24" r="3.5" stroke="#34d399"/>
+          <path d="M17 16 L22 23 M31 13 L27 22 M33 31 L28 25 M19 33 L22 26" stroke-opacity=".7"/>
+        </svg>
+        <h3>Inteligencia multicriterio</h3>
+        <p>Score de aptitud 0–100 y zonas por prioridad. Clasificación validada
+           (K-Means/DBSCAN/HDBSCAN) e informes ejecutivos por IA.</p>
+      </a>
+    </div>
+
+    <!-- CAPACIDADES ACTUALES -->
+    <h1 class="page" style="margin-top:34px;">Lo que hace hoy la plataforma</h1>
+    <p class="sub">Del píxel a la decisión, en un solo flujo.</p>
+    <div class="card hud pad">
+      <div class="caps">
+        <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
+          <div><b>Score de aptitud</b><span>Suma ponderada de criterios → 0–100 y prioridad por zona.</span></div></div>
+        <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#38d9f0" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18"/></svg>
+          <div><b>Salinidad</b><span>NDSI y SI2 para estrés iónico en climas áridos.</span></div></div>
+        <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <div><b>Presets por estudio</b><span>Índices y algoritmo según el tipo de análisis.</span></div></div>
+        <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M3 18l6-6 4 4 8-8"/></svg>
+          <div><b>Evolución temporal</b><span>Mapa de calor mes a mes de cada índice.</span></div></div>
+        <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#38d9f0" stroke-width="2"><path d="M4 16l8-10 8 10z"/><path d="M4 16l8 4 8-4"/></svg>
+          <div><b>Vista 3D</b><span>Zonas e índices drapeados sobre el relieve real.</span></div></div>
+        <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2"><path d="M6 4h9l3 3v13H6z"/><path d="M9 12h6M9 16h6"/></svg>
+          <div><b>Informes IA</b><span>Diagnóstico ejecutivo con gráficas y recomendaciones.</span></div></div>
+        <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M7 10v4a3 3 0 0 0 3 3h4"/></svg>
+          <div><b>Importancia de variables</b><span>XGBoost revela qué índices explican la aptitud.</span></div></div>
+        <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#38d9f0" stroke-width="2"><path d="M12 3v18M3 12h18" stroke-opacity=".4"/><circle cx="12" cy="12" r="8"/></svg>
+          <div><b>PCA</b><span>Reduce la colinealidad entre índices antes de clusterizar.</span></div></div>
+      </div>
+    </div>
+
+    <!-- DOMINIOS -->
+    <h1 class="page" style="margin-top:34px;">Un motor · múltiples dominios</h1>
+    <p class="sub">La misma infraestructura geoespacial, adaptada a cada industria.</p>
+    <div class="domains">
+      <a href="geoanalisis.html?estudio=agro" class="card pad domain">
+        <h3><span>🌱 Agricultura de precisión</span></h3>
+        <p class="hint">Riego y fertilización por zonas, viabilidad de plantaciones,
+           supervivencia de plantones, salinidad del suelo. <b style="color:var(--green)">Activo</b></p></a>
+      <a href="geoanalisis.html?estudio=solar" class="card pad domain">
+        <h3><span>☀️ Energía solar (PV)</span> <span class="soon">Próximamente</span></h3>
+        <p class="hint">Irradiación, pendiente, orientación y albedo para emplazamiento y
+           rendimiento de paneles.</p></a>
+      <a href="geoanalisis.html?estudio=mineria" class="card pad domain">
+        <h3><span>⛏️ Suelos y minería</span> <span class="soon">Próximamente</span></h3>
+        <p class="hint">Cocientes de banda para alteración mineral y monitoreo de relaves
+           con radar (InSAR).</p></a>
+    </div>
+
+    <div class="card hud quote" style="margin-top:24px;">
+      "Los datos son el <span>fertilizante más poderoso</span> del siglo XXI."
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>requireAuth();</script>
+  <script src="nav.js"></script>
+</body>
+</html>

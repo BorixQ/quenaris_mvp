@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quenaris — Acceso</title>
+  <link rel="stylesheet" href="app.css" />
+  <style>
+    body { display:grid; place-items:center; min-height:100vh; }
+    .term { width:380px; max-width:92vw; }
+    .term .head { display:flex; align-items:center; gap:11px; margin-bottom:4px; }
+    .term .logo { width:36px; height:36px; display:grid; place-items:center; color:#03110b;
+      background: conic-gradient(from 140deg, var(--green), var(--cyan), var(--green));
+      clip-path: polygon(50% 0,100% 28%,100% 72%,50% 100%,0 72%,0 28%); box-shadow:var(--glow); }
+    .term h1 { font-family:var(--font-display); font-size:22px; letter-spacing:.08em; margin:0; }
+    .term .tag { font-family:var(--font-mono); font-size:11px; letter-spacing:.18em;
+      text-transform:uppercase; color:var(--muted); margin:2px 0 24px; }
+    .term form { display:block; }
+    .term button { width:100%; margin-top:22px; }
+    #err { color:var(--danger); font-family:var(--font-mono); font-size:12px; margin-top:14px; min-height:16px; }
+    .scan { font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; color:var(--faint);
+      text-align:center; margin-top:18px; }
+  </style>
+</head>
+<body>
+  <div class="term card hud pad">
+    <div class="head"><span class="logo">▲</span>
+      <div><h1>QUENARIS</h1></div>
+    </div>
+    <div class="tag">› Terminal de acceso</div>
+    <form id="loginForm">
+      <label class="fld">Usuario</label>
+      <input type="text" id="username" autocomplete="username" required />
+      <label class="fld">Contraseña</label>
+      <input type="password" id="password" autocomplete="current-password" required />
+      <button class="btn" type="submit">▸ AUTENTICAR</button>
+      <div id="err"></div>
+    </form>
+    <div class="scan">● ● ●  CANAL SEGURO</div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    if (getToken()) location.href = "inicio.html";
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const err = document.getElementById("err");
+      err.textContent = "";
+      try {
+        const res = await fetch(`${API}/auth/token/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value,
+          }),
+        });
+        const data = await jsonOrThrow(res);
+        setToken(data.token);
+        location.href = "inicio.html";
+      } catch (ex) { err.textContent = ex.message; }
+    });
+  </script>
+</body>
+</html>
