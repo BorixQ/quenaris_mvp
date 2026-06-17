@@ -59,7 +59,7 @@ async function loadReport(id) {
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
         <div>
           <h1 class="page">${a.name || "Informe Geoespacial"}</h1>
-          <p class="sub">Quenaris · Plataforma de análisis geoespacial multiespectral</p>
+          <p class="sub">Terranode · Plataforma de análisis geoespacial multiespectral</p>
         </div>
         <div class="toolbar">
           <button class="btn ghost" onclick="window.print()">⭳ Exportar PDF</button>
@@ -121,7 +121,7 @@ async function loadReport(id) {
 
       <hr style="border:none; border-top:1px solid var(--line); margin:24px 0 12px;">
       <p class="hint">
-        Generado por Quenaris · Sentinel-2 (${st.satellite_collection || "COPERNICUS/S2_SR_HARMONIZED"}).
+        Generado por Terranode · Sentinel-2 (${st.satellite_collection || "COPERNICUS/S2_SR_HARMONIZED"}).
         Documento de carácter técnico-orientativo. <a href="viewer3d.html?id=${a.id}">Ver en 3D ⬢</a>
       </p>
     </div>`;

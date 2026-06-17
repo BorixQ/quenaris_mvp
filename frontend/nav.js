@@ -17,7 +17,7 @@
 
   holder.className = "nav";
   holder.innerHTML = `
-    <div class="brand"><span class="logo">▲</span> QUENARIS</div>
+    <div class="brand"><span class="logo">▲</span> TERRANODE</div>
     <div class="links">
       ${items.map(i => `
         <a href="${i.href}" class="${i.id === active ? "active" : ""}">

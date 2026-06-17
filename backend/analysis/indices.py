@@ -1,7 +1,7 @@
 """
 Índices ecofisiológicos, espectrales y topográficos — con registro y presets.
 
-Fórmulas fieles al motor de Quenaris, refinadas según el análisis de optimización
+Fórmulas fieles al motor de Terranode, refinadas según el análisis de optimización
 de variables (jun 2026): se añaden MSAVI (sustituye a SAVI, sin factor L manual),
 índices de salinidad NDSI/SI2 (críticos en el desierto de Arequipa) y topografía
 completa (Aspect, TPI, TRI, Elevación) además de Slope y exposición solar.

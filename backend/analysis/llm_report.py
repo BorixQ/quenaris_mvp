@@ -14,7 +14,7 @@ from django.conf import settings
 from openai import OpenAI
 
 SYSTEM_PROMPT = """\
-Eres un ingeniero agrónomo/forestal y analista de teledetección senior de Quenaris.
+Eres un ingeniero agrónomo/forestal y analista de teledetección senior de Terranode.
 Redactas informes ejecutivos a partir de estadísticas derivadas de Sentinel-2 con un
 motor de análisis multicriterio por píxel.
 
