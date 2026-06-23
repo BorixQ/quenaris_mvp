@@ -30,19 +30,47 @@ REGISTRY = [
 ]
 
 # Presets por tipo de estudio (refinados según el documento técnico).
-# Agro: sin redundancias (fuera GNDVI, MSI, MoistureStress; SAVI→MSAVI),
-#       con salinidad y topografía completa.
+# Cada preset define: 'indices', 'weights', y 'profile_overrides' (opcional)
 PRESETS = {
-    "agro": [
-        "NDVI", "EVI", "NDRE", "MSAVI",          # vegetación + suelo (germinación)
-        "NDMI", "NDWI",                          # agua
-        "NDSI", "SI2",                           # salinidad
-        "BSI", "NBR", "PSRI",                    # suelo / estrés
-        "Slope", "Aspect", "TPI", "TRI", "SolarExposure", "Elevation",  # topografía
-    ],
-    # Definidos para fases siguientes (no activos en la UI todavía).
-    "solar": ["Slope", "Aspect", "SolarExposure", "Elevation", "TPI", "BSI"],
-    "mineria": ["BSI", "NDSI", "NDBI", "Slope", "Elevation", "TPI", "TRI"],
+    "agro": {
+        "indices": [
+            "NDVI", "EVI", "NDRE", "MSAVI",
+            "NDMI", "NDWI",
+            "NDSI", "SI2",
+            "BSI", "NBR", "PSRI",
+            "Slope", "Aspect", "TPI", "TRI", "SolarExposure", "Elevation"
+        ],
+        "weights": None, # Usa los pesos por defecto de scoring.py
+        "profile_overrides": {}
+    },
+    "riego": {
+        "indices": ["NDMI", "NDWI", "Slope", "Elevation"],
+        "weights": {"NDMI": 0.6, "NDWI": 0.4, "Slope": 0.0, "Elevation": 0.0},
+        "profile_overrides": {"NDWI": {"direction": "low_good"}} # Evitar encharcamiento
+    },
+    "fumigacion": {
+        "indices": ["NDVI", "NDRE", "PSRI", "NDMI"],
+        "weights": {"NDVI": 0.30, "NDRE": 0.30, "PSRI": 0.25, "NDMI": 0.15},
+        "profile_overrides": {"PSRI": {"direction": "low_good"}} # PSRI bajo es sano
+    },
+    "reforestacion": {
+        "indices": ["BSI", "MSAVI", "NDSI", "NDWI", "Slope", "Elevation"],
+        "weights": {"BSI": 0.4, "MSAVI": 0.3, "NDSI": 0.2, "NDWI": 0.1, "Slope": 0.0, "Elevation": 0.0},
+        "profile_overrides": {
+            "BSI": {"direction": "high_good"},   # Suelo desnudo = oportunidad
+            "MSAVI": {"direction": "low_good"},  # Poca vegetación actual = bueno
+            "NDSI": {"direction": "low_good"},
+            "NDWI": {"direction": "low_good"}
+        }
+    },
+    "fertilizacion": {
+        "indices": ["NDVI", "NDRE", "MSAVI"],
+        "weights": {"NDVI": 0.4, "NDRE": 0.4, "MSAVI": 0.2},
+        "profile_overrides": {} # Todos mantienen su default high_good
+    },
+    # Compatibilidad legacy
+    "solar": {"indices": ["Slope", "Aspect", "SolarExposure", "Elevation", "TPI", "BSI"]},
+    "mineria": {"indices": ["BSI", "NDSI", "NDBI", "Slope", "Elevation", "TPI", "TRI"]}
 }
 
 DEFAULT_STUDY = "agro"
@@ -54,7 +82,13 @@ def resolve_indices(study_type: str | None, override: list[str] | None) -> list[
         sel = [i for i in override if i in REGISTRY]
         if sel:
             return sel
-    return PRESETS.get(study_type or DEFAULT_STUDY, PRESETS["agro"])
+            
+    preset = PRESETS.get(study_type or DEFAULT_STUDY, PRESETS["agro"])
+    
+    # Compatibilidad con formato antiguo (lista) vs nuevo (dict)
+    if isinstance(preset, list):
+        return preset
+    return preset.get("indices", [])
 
 
 def spectral_indices(img: ee.Image) -> ee.Image:

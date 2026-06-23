@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import include, path
 from rest_framework.authtoken.views import ObtainAuthToken
+from analysis.views import OAuthLoginView, UserQuotaView
 
 
 class TokenView(ObtainAuthToken):
@@ -18,5 +19,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # Devuelve {"token": "..."} a partir de {"username", "password"}
     path("api/auth/token/", TokenView.as_view(), name="api-token"),
+    path("api/auth/oauth/", OAuthLoginView.as_view(), name="api-oauth"),
+    path("api/auth/quota/", UserQuotaView.as_view(), name="api-quota"),
     path("api/", include("analysis.urls")),
 ]

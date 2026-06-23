@@ -1,4 +1,4 @@
-# 🧭 Quenaris — Handoff para rearranque con arquitectura limpia
+# 🧭 Terranode — Handoff para rearranque con arquitectura limpia
 
 > Documento único de traspaso. Contiene **todo lo aprendido en el MVP**: qué hace
 > la app, la ciencia (índices, scoring, algoritmos), una arquitectura **de referencia**,
@@ -15,17 +15,13 @@
 
 ---
 
-## 1 · Qué es Quenaris (y qué validó el MVP)
+## 1 · Qué es Terranode (y qué validó el MVP)
 
-SaaS de **inteligencia geoespacial** multi-dominio (agricultura de precisión, energía
-solar PV, suelos/minería). Cliente en Arequipa, Perú. Lema: *"Los datos son el
-fertilizante más poderoso del siglo XXI"*.
+SaaS de **inteligencia agronómica y medioambiental**. Cliente base en el desierto costero de Arequipa, Perú. Lema: *"Los datos son el fertilizante más poderoso del siglo XXI"*.
 
-El MVP **validó la idea**: el usuario dibuja/carga un Área de Interés, el sistema
-descarga Sentinel-2, calcula índices, los combina en un **SuitabilityScore 0–100**,
-segmenta el terreno en **zonas priorizadas**, genera **mapas de calor temporales**,
-una **vista 3D** y un **informe ejecutivo por IA**. Procesamiento **asíncrono**
-(no bloquea). Funcionó de extremo a extremo.
+El MVP **validó la idea**: el usuario define un polígono, el sistema descarga Sentinel-2, calcula índices y los combina en un **SuitabilityScore 0–100 específico según el tipo de estudio agronómico**. Segmenta el terreno en **zonas priorizadas**, genera **mapas de calor temporales**, una **vista 3D** y un **informe ejecutivo**. Procesamiento **asíncrono** (no bloquea).
+
+**Enfoque de Negocio:** La plataforma es **sincera y estrictamente enfocada en la Agricultura** a través de 5 módulos core (*Salud General, Estado Hídrico, Alerta Fitosanitaria, Potencial de Reforestación, y Nutrición*). Las ideas de expansión hacia Energía Solar, Minería o Riesgo Inmobiliario son desarrollos a futuro; la matemática y el UX actuales están obsesivamente calibrados para resolver problemas biológicos y del suelo.
 
 La v2 NO cambia el alcance ni la ciencia; cambia la **arquitectura del código** para
 hacerlo mantenible, testeable y desplegable con confianza.
@@ -53,7 +49,7 @@ hacerlo mantenible, testeable y desplegable con confianza.
 > vivía mezclado en `analysis/` y eso impidió testear el motor de forma aislada.
 
 ```
-quenaris/
+terranode/
 ├── docker-compose.yml              # dev (bind mounts)
 ├── docker-compose.prod.yml         # override: Caddy + sin puertos host
 ├── Caddyfile                       # HTTPS automático
@@ -115,22 +111,19 @@ Bandas: B2 azul, B3 verde, B4 rojo, B5 red-edge1, B8 NIR, B11 SWIR1, B12 SWIR2.
   (elev − media local), **TRI** (desv. local), **SolarExposure** (northness para
   hemisferio sur; 0.5 en terreno plano).
 
-### 4.2 Scoring multicriterio (preset Agro)
+### 4.2 Scoring multicriterio y Priorización (Corregido y Escalado)
 Z-score de cada índice → sigmoide `1/(1+exp(-k·z))` (índices "malos" invertidos) →
-suma ponderada **normalizada por los índices presentes** → 0–100. Criterios:
+suma ponderada **normalizada por los índices presentes** (según el Perfil del Estudio).
 
-| Criterio | Términos (feature, pts, invertido) | Peso |
-|---|---|---|
-| Vigor | NDVI(10,F), EVI(8,F), NDRE(7,F) | 0.25 |
-| Hídrica | NDMI(12,F), NDWI(8,F) | 0.20 |
-| Mitigación suelo | MSAVI(8,F), BSI(7,**T**) | 0.15 |
-| **Salinidad** | NDSI(8,**T**), SI2(7,**T**) | 0.15 |
-| Topografía | slope_opt(8,F), SolarExposure(7,F) | 0.15 |
-| Bajo estrés | PSRI(5,**T**), NBR(5,F) | 0.10 |
+**Importante:** En la v1 todos los puntajes tendían al 50% por regresión a la media. Ahora se aplica un **estiramiento de percentiles (Min-Max Scaling)** final sobre la matriz, forzando la distribución al rango 0–100, garantizando alta varianza visual en el mapa de calor y discriminación estadística.
 
-`slope_opt` = gaussiana de la pendiente (óptimo ~4°, σ=9). Prioridad: Muy Alta ≥75,
-Alta ≥50, Media ≥25, Baja <25. **Importante:** normalizar por puntos presentes (validado:
-óptimo→88, pésimo→12, y con solo 5 índices también→88).
+**Inversión de Prioridad:** El concepto de "Prioridad" ya no es análogo a "Aptitud". Ahora, Prioridad indica **Urgencia de Intervención**.
+Por tanto, bajas puntuaciones de aptitud reciben **Prioridad Muy Alta**.
+Umbrales actuales:
+- Muy Alta (Rojo en aptitud, Verde/Rojo en UI según el caso): Aptitud ≤ 35
+- Alta: Aptitud ≤ 55
+- Media: Aptitud ≤ 75
+- Baja: Aptitud > 75
 
 ### 4.3 Clustering y validación (M3)
 - Algoritmos: **K-Means** (n_clusters), **DBSCAN** (eps=1.2, min_samples=30),
@@ -143,13 +136,17 @@ Alta ≥50, Media ≥25, Baja <25. **Importante:** normalizar por puntos present
 - Etiquetado semántico por aptitud media del cluster: No apto / Marginal / Moderado /
   Bueno / Óptimo.
 
-### 4.4 Presets por tipo de estudio
-- **agro** (activo): NDVI, EVI, NDRE, MSAVI, NDMI, NDWI, NDSI, SI2, BSI, NBR, PSRI,
-  Slope, Aspect, TPI, TRI, SolarExposure, Elevation.
-- **solar** (futuro): Slope, Aspect, SolarExposure, Elevation, TPI, BSI + (albedo MODIS,
-  LST Landsat, ERA5-Land temp/viento — requiere multi-fuente).
-- **mineria** (futuro): cocientes de banda Sentinel-2 (óxido férrico B4/B2, ferroso
-  FEI=(B12/B4)+(B7/B3), arcillas) + InSAR Sentinel-1 para relaves.
+### 4.4 Perfiles por Tipo de Estudio (Multi-Dominio)
+El backend soporta perfiles de índices y pesos diferenciados. Se envía mediante `study_type` en la request. Los 5 dominios agrícolas implementados son:
+- **agro** (Salud General): NDVI, EVI, NDRE, MSAVI, NDMI, NDWI, NDSI, SI2, BSI, NBR, PSRI, Slope, Aspect, TPI, TRI, SolarExposure, Elevation.
+- **riego** (Estado Hídrico): NDMI, NDWI, Slope, Elevation. (Prioriza variables hídricas para descartar estrés y encharcamiento).
+- **fumigacion** (Alerta Fitosanitaria): NDVI, NDRE, PSRI, NDMI. (Caza caídas tempranas de clorofila y senescencia).
+- **reforestacion** (Potencial): BSI, MSAVI, NDSI, NDWI, Slope, Elevation. (Identifica suelo expuesto y humedad apta para plantar).
+- **fertilizacion** (Nutrición): NDVI, NDRE, MSAVI. (Identifica carencia de N).
+
+*Nota: Paneles solares y minería siguen siendo ramas futuras.*
+
+El **Frontend (Geoanálisis, Informes, 3D Viewer)** reacciona dinámicamente a este contexto: filtra las listas de índices, ajusta los glosarios para explicar qué significa cada índice para ese estudio particular, y renderiza tablas y gráficos de telaraña (Radar) generados al vuelo según los `indices_used`.
 
 ### 4.5 Mapa de calor temporal + 3D
 - Por cada mes del rango: composite → stack → colorizar PNG por índice + **suitability**,

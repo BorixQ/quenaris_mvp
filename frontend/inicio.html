@@ -39,7 +39,7 @@
     .cap b { font-family:var(--font-display); font-size:14px; display:block; }
     .cap span { color:var(--muted); font-size:12px; line-height:1.5; }
 
-    .domains { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:14px; }
+    .domains { display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:16px; margin-top:14px; }
     .domain { border-left:3px solid var(--cyan); }
     .domain h3 { font-family:var(--font-display); font-size:15px; margin:0 0 6px;
       display:flex; align-items:center; gap:8px; justify-content:space-between; }
@@ -192,22 +192,40 @@
       </div>
     </div>
 
-    <!-- DOMINIOS -->
-    <h1 class="page" style="margin-top:34px;">Un motor · múltiples dominios</h1>
-    <p class="sub">La misma infraestructura geoespacial, adaptada a cada industria.</p>
+    <!-- CASOS DE USO AGRONÓMICOS -->
+    <h1 class="page" style="margin-top:34px;">Contextos Agronómicos Activos</h1>
+    <p class="sub">El motor adapta su matemática automáticamente a la necesidad de campo.</p>
     <div class="domains">
-      <a href="geoanalisis.html?estudio=agro" class="card pad domain">
-        <h3><span>🌱 Agricultura de precisión</span></h3>
-        <p class="hint">Riego y fertilización por zonas, viabilidad de plantaciones,
-           supervivencia de plantones, salinidad del suelo. <b style="color:var(--green)">Activo</b></p></a>
-      <a href="geoanalisis.html?estudio=solar" class="card pad domain">
-        <h3><span>☀️ Energía solar (PV)</span> <span class="soon">Próximamente</span></h3>
-        <p class="hint">Irradiación, pendiente, orientación y albedo para emplazamiento y
-           rendimiento de paneles.</p></a>
-      <a href="geoanalisis.html?estudio=mineria" class="card pad domain">
-        <h3><span>⛏️ Suelos y minería</span> <span class="soon">Próximamente</span></h3>
-        <p class="hint">Cocientes de banda para alteración mineral y monitoreo de relaves
-           con radar (InSAR).</p></a>
+      <a href="geoanalisis.html" class="card pad domain">
+        <h3><span>🌱 Salud General (Agro)</span></h3>
+        <p class="hint">Análisis de viabilidad general para plantaciones considerando salinidad, topografía y calidad de suelo.</p></a>
+      <a href="geoanalisis.html" class="card pad domain">
+        <h3><span>💧 Estado Hídrico (Riego)</span></h3>
+        <p class="hint">Prioriza y castiga estrictamente zonas con encharcamiento prolongado o estrés hídrico severo (sequía).</p></a>
+      <a href="geoanalisis.html" class="card pad domain">
+        <h3><span>🐛 Alerta Fitosanitaria</span></h3>
+        <p class="hint">Detección temprana de anomalías en senescencia y clorofila asociadas a ataques de plagas o patógenos.</p></a>
+      <a href="geoanalisis.html" class="card pad domain">
+        <h3><span>🧪 Nutrición</span></h3>
+        <p class="hint">Mapa de precisión para optimizar recursos: abonado y fertilización diferencial basada en deficiencias.</p></a>
+      <a href="geoanalisis.html" class="card pad domain">
+        <h3><span>🌲 Reforestación</span></h3>
+        <p class="hint">Búsqueda activa de áreas sin vegetación pero con buenas propiedades de suelo (suelo desnudo = oportunidad).</p></a>
+    </div>
+
+    <!-- PRÓXIMAMENTE -->
+    <h1 class="page" style="margin-top:48px; color:var(--muted);">Expansión Industrial <span class="soon">Próximamente</span></h1>
+    <p class="sub">Nuevos módulos en desarrollo usando la misma arquitectura central.</p>
+    <div class="domains" style="opacity:0.6;">
+      <div class="card pad domain" style="border-left-color:var(--amber);">
+        <h3><span>☀️ Energía Solar (PV)</span></h3>
+        <p class="hint">Irradiación, pendiente, orientación y albedo para diseño de emplazamientos y predicción de rendimiento.</p></div>
+      <div class="card pad domain" style="border-left-color:var(--amber);">
+        <h3><span>⛏️ Minería y Relaves</span></h3>
+        <p class="hint">Cocientes de banda para detección de alteración mineral, óxidos y monitoreo de estabilidad con radar.</p></div>
+      <div class="card pad domain" style="border-left-color:var(--amber);">
+        <h3><span>🏗️ Riesgo Inmobiliario</span></h3>
+        <p class="hint">Análisis de subsidencia, riesgo de inundación topográfica y estabilidad de laderas para urbanismo.</p></div>
     </div>
 
     <div class="card hud quote" style="margin-top:24px;">

@@ -133,8 +133,10 @@ function rowsToCoords(rows) {
 const PRESETS = {
   agro: ["NDVI","EVI","NDRE","MSAVI","NDMI","NDWI","NDSI","SI2","BSI","NBR","PSRI",
          "Slope","Aspect","TPI","TRI","SolarExposure","Elevation"],
-  solar: ["Slope","Aspect","SolarExposure","Elevation","TPI","BSI"],
-  mineria: ["BSI","NDSI","NDBI","Slope","Elevation","TPI","TRI"],
+  riego: ["NDMI", "NDWI", "Slope", "Elevation"],
+  fumigacion: ["NDVI", "NDRE", "PSRI", "NDMI"],
+  reforestacion: ["BSI", "MSAVI", "NDSI", "NDWI", "Slope", "Elevation"],
+  fertilizacion: ["NDVI", "NDRE", "MSAVI"]
 };
 const IDX_GROUPS = [
   ["Vegetación", ["NDVI","EVI","SAVI","MSAVI","NDRE","GNDVI","CIre","ARVI","SIPI","LAI"]],
@@ -143,6 +145,97 @@ const IDX_GROUPS = [
   ["Suelo",      ["BSI","NBR","NDBI","PSRI"]],
   ["Topografía", ["Elevation","Slope","Aspect","TPI","TRI","SolarExposure"]],
 ];
+const STUDY_DESCRIPTIONS = {
+  agro: {
+    priority: "Prioridad alta indica zonas con pobre desarrollo o estrés múltiple, requiriendo intervención agronómica general.",
+    indices: {
+      suitability: "Puntuación ponderada general (0-100) que resume la viabilidad agronómica del sector.",
+      ndvi: "Mide el vigor base del cultivo. Fundamental para entender el estado de salud general.",
+      evi: "Ayuda a evaluar el vigor en zonas de alta densidad foliar sin saturarse.",
+      ndre: "Detecta problemas de clorofila antes de que el follaje se pierda visiblemente.",
+      msavi: "Optimizado para etapas tempranas donde el suelo desnudo afecta la medición.",
+      ndmi: "Mide el estrés hídrico general en la vegetación.",
+      ndwi: "Detecta exceso de humedad o encharcamientos.",
+      ndsi: "Identifica áreas con salinidad superficial que impiden el crecimiento.",
+      si2: "Complementa al NDSI en la detección de estrés salino severo.",
+      bsi: "Proporción de suelo expuesto; valores altos indican mala cobertura del cultivo.",
+      nbr: "Usado para detectar quemas o biomasa leñosa muerta.",
+      psri: "Indica envejecimiento prematuro del cultivo.",
+      slope: "Pendientes fuertes dificultan la maquinaria y el riego.",
+      aspect: "Orientación de la ladera frente al sol.",
+      tpi: "Índice de posición topográfica (crestas o valles).",
+      tri: "Rugosidad del terreno.",
+      solarexposure: "Horas de sol directas según el relieve.",
+      elevation: "Altura sobre el nivel del mar."
+    }
+  },
+  riego: {
+    priority: "Prioridad alta resalta zonas con estrés hídrico severo o encharcamiento prolongado, urgiendo ajuste en válvulas o drenajes.",
+    indices: {
+      suitability: "Puntuación de eficiencia hídrica (0-100). Valores bajos indican sequía extrema o inundación perjudicial.",
+      ndmi: "Crítico en riego: mide la falta de agua interna en la hoja antes de que la planta se seque visiblemente.",
+      ndwi: "Detecta inundaciones superficiales o zonas de mal drenaje por exceso de riego.",
+      slope: "Identifica pendientes fuertes donde el agua escurre rápido y no penetra el suelo.",
+      elevation: "Útil para predecir presión de agua en sistemas de riego por goteo o aspersión."
+    }
+  },
+  fumigacion: {
+    priority: "Prioridad alta marca focos con anomalías foliares, posibles epicentros de plagas u hongos para aplicación dirigida.",
+    indices: {
+      suitability: "Puntuación de alerta fitosanitaria. Valores bajos marcan áreas con daño foliar urgente.",
+      ndvi: "Detecta parches con pérdida repentina de follaje por herbívoros.",
+      ndre: "Sensible a la pérdida temprana de clorofila por enfermedades o estrés antes de que el NDVI baje.",
+      psri: "Indica envejecimiento prematuro (senescencia) de la hoja causado por patógenos.",
+      ndmi: "Un dosel dañado por plagas suele perder su capacidad de retener agua internamente."
+    }
+  },
+  reforestacion: {
+    priority: "Zonas Óptimas son ideales para plantar. Prioridad alta indica terrenos hostiles para el prendimiento de plantones (baja aptitud).",
+    indices: {
+      suitability: "Puntuación de viabilidad para plantar (0-100).",
+      bsi: "Fundamental para encontrar suelo expuesto y disponible para plantar.",
+      msavi: "Evalúa la escasa vegetación existente minimizando la influencia del suelo desnudo.",
+      ndsi: "Evita plantar en suelos muy salinos donde los plantones no sobrevivirán.",
+      ndwi: "Asegura que la zona tenga humedad base adecuada para la supervivencia temprana.",
+      slope: "Pendientes extremas aumentan la erosión y dificultan la plantación manual.",
+      elevation: "Condiciona qué especies de árboles pueden adaptarse al microclima."
+    }
+  },
+  fertilizacion: {
+    priority: "Prioridad alta revela parches con deficiencia nutricional (clorosis o bajo vigor) que requieren abono localizado urgente.",
+    indices: {
+      suitability: "Puntuación de suficiencia nutricional (0-100). Valores bajos piden fertilización inminente.",
+      ndvi: "Mapea las zonas de menor biomasa que necesitan estimulación con nitrógeno.",
+      ndre: "El mejor indicador de niveles bajos de Nitrógeno y clorofila en el cultivo.",
+      msavi: "Útil en etapas tempranas del cultivo para decidir la primera fertilización de fondo."
+    }
+  }
+};
+
+const INDEX_META = {
+  suitability:{n:"Aptitud", d:"Puntuación ponderada de 0 a 100 que resume el estado de la zona según el objetivo del estudio."}, 
+  ndvi:{n:"NDVI", d:"Mide el vigor y verdor de las plantas. Valores altos indican vegetación sana."}, 
+  evi:{n:"EVI", d:"Similar al NDVI pero corrige distorsiones atmosféricas y ruido del suelo."},
+  savi:{n:"SAVI", d:"Optimizado para zonas áridas donde el suelo desnudo afecta la medición."}, 
+  ndre:{n:"NDRE", d:"Sensible al contenido de clorofila y etapas tardías del cultivo."}, 
+  gndvi:{n:"GNDVI", d:"Usa la banda verde para detectar variaciones en la clorofila."},
+  cire:{n:"CIre", d:"Índice de clorofila Red-Edge para medir estrés nutricional."}, 
+  arvi:{n:"ARVI", d:"Resistente a los efectos atmosféricos (humo, polvo)."}, 
+  sipi:{n:"SIPI", d:"Mide el ratio de carotenoides/clorofila (estrés fisiológico)."},
+  lai:{n:"LAI", d:"Estima el área foliar por metro cuadrado de suelo."}, 
+  ndmi:{n:"NDMI", d:"Mide el contenido de humedad interna de las hojas (estrés hídrico)."}, 
+  ndwi:{n:"NDWI", d:"Detecta agua libre superficial o zonas de encharcamiento."}, 
+  msi:{n:"MSI", d:"Índice de estrés hídrico; valores altos indican sequedad."},
+  moisturestress:{n:"M.Stress", d:"Variación del MSI para estrés por sequía."}, 
+  wdi:{n:"WDI", d:"Índice de déficit de agua para optimizar el riego."}, 
+  bsi:{n:"BSI", d:"Mide la proporción de suelo desnudo frente a la vegetación."},
+  nbr:{n:"NBR", d:"Usado para detectar áreas quemadas o evaluar biomasa leñosa."}, 
+  ndbi:{n:"NDBI", d:"Detecta áreas construidas o suelos impermeables."}, 
+  psri:{n:"PSRI", d:"Relacionado con la senescencia y maduración del cultivo."},
+  slope:{n:"Pendiente", d:"Inclinación del terreno en grados. Crítico para drenaje e insolación."}, 
+  solarexposure:{n:"Solar", d:"Exposición teórica a la radiación solar considerando laderas y sombras."},
+};
+
 let selectedIndices = new Set(PRESETS.agro);
 
 const studySel = document.getElementById("studyType");
@@ -220,6 +313,10 @@ runBtn.addEventListener("click", async () => {
     });
     const job = await jsonOrThrow(res);
     localStorage.setItem(JOB_KEY, job.id);   // recordar para reanudar
+    
+    // Actualizar la cuota visual en la barra superior
+    if (typeof window.refreshQuota === "function") window.refreshQuota();
+
     poll(job.id);
   } catch (e) { busy(false, "Error: " + e.message); }
 });
@@ -277,6 +374,66 @@ document.getElementById("newAnalysis").addEventListener("click", () => {
   enterCreateMode(); clearAnalysisView(); draw.deleteAll(); setAOI(null);
 });
 
+document.getElementById("remakeAnalysis")?.addEventListener("click", () => {
+  if (!currentLoadedAnalysis) return;
+  const a = currentLoadedAnalysis;
+  
+  document.getElementById("analysisName").value = a.name ? a.name + " (Copia)" : "Análisis (Copia)";
+  document.getElementById("dateStart").value = a.date_start;
+  document.getElementById("dateEnd").value = a.date_end;
+  document.getElementById("algorithm").value = a.algorithm || "kmeans";
+  if (a.n_clusters) {
+    document.getElementById("nClusters").value = a.n_clusters;
+  }
+  if (a.study_type) {
+    document.getElementById("studyType").value = a.study_type;
+  }
+  if (a.indices && Array.isArray(a.indices)) {
+    selectedIndices = new Set(a.indices);
+    buildIdxList();
+    updateIdxSummary();
+  }
+  document.getElementById("usePca").checked = !!a.use_pca;
+  syncAlgo();
+
+  enterCreateMode();
+  clearAnalysisView();
+  
+  draw.deleteAll();
+  if (a.aoi) {
+    draw.add({ type: "Feature", properties: {}, geometry: a.aoi });
+    setAOI(a.aoi);
+    const b = new maplibregl.LngLatBounds();
+    const walk = (c) => Array.isArray(c[0]) ? c.forEach(walk) : b.extend(c);
+    walk(a.aoi.coordinates);
+    map.fitBounds(b, { padding: 60 });
+  }
+});
+
+document.getElementById("deleteAnalysis")?.addEventListener("click", async () => {
+  if (!currentLoadedAnalysis) return;
+  const id = currentLoadedAnalysis.id;
+  if (!confirm("¿Estás seguro de que deseas eliminar este análisis? Esta acción no se puede deshacer.")) return;
+  
+  setStatus("Eliminando análisis...");
+  try {
+    const res = await fetch(`${API}/analyses/${id}/`, {
+      method: "DELETE",
+      headers: authHeaders()
+    });
+    if (!res.ok) throw new Error("Fallo al eliminar el análisis.");
+    
+    await refreshPrevList();
+    enterCreateMode();
+    clearAnalysisView();
+    draw.deleteAll();
+    setAOI(null);
+    setStatus("Análisis eliminado exitosamente.");
+  } catch (e) {
+    setStatus("Error: " + e.message);
+  }
+});
+
 // --- Modo VER (solo lectura) vs CREAR --------------------------------------
 function enterCreateMode() {
   document.getElementById("createControls").style.display = "block";
@@ -297,12 +454,15 @@ function enterViewMode(a) {
     <div class="kv"><span>Área</span><b>${a.area_ha} ha</b></div>`;
 }
 
+let currentLoadedAnalysis = null;
+
 async function loadAnalysisById(id) {
   setStatus("Cargando análisis…");
   try {
     const res = await fetch(`${API}/analyses/${id}/`, { headers: authHeaders() });
     const data = await jsonOrThrow(res);
     if (data.status !== "COMPLETED" || !data.result) { setStatus("Ese análisis no está disponible."); return; }
+    currentLoadedAnalysis = data;
     localStorage.setItem(LAST_KEY, id);
     prevSel.value = id;
     enterViewMode(data);                              // campos en solo lectura
@@ -342,15 +502,21 @@ function fmtDate(s) { return s ? new Date(s).toLocaleDateString("es-ES", { day: 
   if (last) loadAnalysisById(last);
 })();
 
-// --- Render de clusters (coloreados por prioridad) -------------------------
-const PRIO_COLOR = { "Muy Alta":"#34d399", "Alta":"#7bb661", "Media":"#f5a524", "Baja":"#b5651d" };
+// --- Render de clusters (coloreados por label/ranking relativo) ------------
+const LABEL_COLOR = { 
+  "Óptimo": "#34d399", 
+  "Bueno": "#7bb661", 
+  "Moderado": "#f5a524", 
+  "Marginal": "#d97736",
+  "No apto": "#b5651d" 
+};
 function renderClusters(geojson) {
-  const prioColor = ["match", ["get","priority"], ...Object.entries(PRIO_COLOR).flat(), "#888"];
+  const labelColor = ["match", ["get","label"], ...Object.entries(LABEL_COLOR).flat(), "#888"];
   if (map.getSource("clusters")) { map.getSource("clusters").setData(geojson); }
   else {
     map.addSource("clusters", { type: "geojson", data: geojson });
     map.addLayer({ id: "clusters-fill", type: "fill", source: "clusters",
-      paint: { "fill-color": prioColor, "fill-opacity": 0.45 } });
+      paint: { "fill-color": labelColor, "fill-opacity": 0.45 } });
     map.addLayer({ id: "clusters-outline", type: "line", source: "clusters",
       paint: { "line-color": "#0b1018", "line-width": 1, "line-opacity": 0.8 } });
   }
@@ -360,11 +526,17 @@ function renderClusters(geojson) {
 // --- Mapa de calor temporal (rásters PNG propios servidos en /media) -------
 let HM = null, hmIndex = null, hmTime = 0;
 
-// Mostrar/ocultar el panel de capas (toggle en barra lateral + ✕ en el panel)
 function hmSetVisible(v) {
   const box = document.getElementById("hm"), tgl = document.getElementById("hmToggle");
   box.classList.toggle("show", v);
   tgl.textContent = v ? "▾ Ocultar capas de índices" : "▸ Mostrar capas de índices";
+  
+  if (map.getLayer("heat")) {
+    map.setLayoutProperty("heat", "visibility", v ? "visible" : "none");
+  }
+  if (map.getLayer("clusters-fill")) {
+    map.setPaintProperty("clusters-fill", "fill-opacity", v ? 0.0 : 0.45);
+  }
 }
 document.getElementById("hmClose").addEventListener("click", () => hmSetVisible(false));
 document.getElementById("hmToggle").addEventListener("click", () =>
@@ -376,7 +548,14 @@ function setupHeatmap(layers) {
     box.classList.remove("show"); tgl.style.display = "none"; return;
   }
   tgl.style.display = "block";
-  HM = layers; hmIndex = layers.indices[0]; hmTime = 0;
+  // Filtrar para mostrar solo "suitability" y los índices usados en este análisis
+  const usedIndices = (currentLoadedAnalysis?.result?.statistics?.indices_used || []).map(i => i.toLowerCase());
+  const filteredIndices = layers.indices.filter(i => i === "suitability" || usedIndices.includes(i));
+  
+  HM = layers; 
+  HM.indices = filteredIndices; // Sobrescribir la lista para los botones
+  hmIndex = filteredIndices[0]; 
+  hmTime = 0;
 
   // Botones de índice
   const btns = document.getElementById("idxBtns");
@@ -386,7 +565,7 @@ function setupHeatmap(layers) {
     moisturestress:"M.Stress", wdi:"WDI", bsi:"BSI", nbr:"NBR", ndbi:"NDBI", psri:"PSRI",
     slope:"Pendiente", solarexposure:"Solar",
   };
-  btns.innerHTML = layers.indices.map(i =>
+  btns.innerHTML = filteredIndices.map(i =>
     `<button data-i="${i}" class="${i===hmIndex?"on":""}">${NAMES[i]||i}</button>`).join(" ");
   btns.querySelectorAll("button").forEach(b => b.onclick = () => {
     hmIndex = b.dataset.i;
@@ -425,6 +604,13 @@ function updateHeatmap() {
     map.addLayer({ id: "heat", type: "raster", source: "heat",
       paint: { "raster-opacity": document.getElementById("opacity").value / 100 } }, before);
   }
+  
+  // Actualizar descripción
+  const studyType = currentLoadedAnalysis?.study_type || "agro";
+  const dict = STUDY_DESCRIPTIONS[studyType] || STUDY_DESCRIPTIONS.agro;
+  const meta = INDEX_META[hmIndex.toLowerCase()] || {};
+  const d = dict.indices[hmIndex.toLowerCase()] || meta.d || "";
+  document.getElementById("hmDesc").innerHTML = `<span style="color:var(--cyan);font-weight:bold;">${meta.n || hmIndex}:</span> ${d}`;
 }
 
 // --- Utilidades -------------------------------------------------------------

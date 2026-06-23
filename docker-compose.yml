@@ -120,6 +120,18 @@ services:
     depends_on: [web]
     networks: [backend_net]
 
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel (Zero Trust) para exponer localhost:8080 a quenaris.tech
+  # ---------------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: geoinsight_cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:?Define CLOUDFLARE_TUNNEL_TOKEN en .env}
+    networks: [backend_net]
+
 volumes:
   pgdata:
   redisdata:

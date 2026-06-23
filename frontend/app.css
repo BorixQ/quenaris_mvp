@@ -176,3 +176,41 @@ select option { background: var(--bg-2); }
   .md, .md h1, .md h2, .md h3 { color:#111; }
   .md th { background:#f0f3f1; color:#0b5; }
 }
+
+/* ===========================================================================
+ * RESPONSIVIDAD (MÓVILES Y TABLETS)
+ * ========================================================================= */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr !important; padding: 30px 20px !important; text-align: center; }
+  .hero-art { display: none; } /* Ocultar imagen en móvil para simplificar */
+  .readouts { justify-content: center; }
+}
+
+@media (max-width: 768px) {
+  /* Navegación superior */
+  .nav { padding: 10px 12px; height: auto; flex-wrap: wrap; justify-content: space-between; }
+  .nav .links { margin-left: 0; width: 100%; justify-content: space-between; margin-top: 10px; order: 3; }
+  .nav .sys { display: none; } /* Ocultar sistema en móvil */
+  
+  /* Contenedores y grillas principales */
+  .container { padding: 15px 12px; }
+  .kpis { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+  
+  /* Grillas específicas de inicio.html */
+  .grid3 { grid-template-columns: 1fr !important; }
+  .caps { grid-template-columns: repeat(2, 1fr) !important; }
+  
+  /* Tablas MD */
+  .md table { display: block; overflow-x: auto; white-space: nowrap; }
+  
+  /* Login */
+  .term { max-width: 100vw; width: 100%; border-radius: 0; border: none; }
+}
+
+@media (max-width: 480px) {
+  .kpis { grid-template-columns: 1fr !important; }
+  .caps { grid-template-columns: 1fr !important; }
+  .nav .links a { font-size: 11px; padding: 6px 8px; }
+  h1.page { font-size: 22px; }
+  .hero h1 { font-size: 28px !important; }
+}

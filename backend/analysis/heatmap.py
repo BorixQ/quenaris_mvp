@@ -103,26 +103,18 @@ def _bands(data: np.ndarray) -> dict[str, np.ndarray]:
     return {name: data[i] for i, name in enumerate(HEATMAP_BANDS)}
 
 
-# Features que necesita el scoring Agro (se z-scorean para la aptitud)
-_SCORE_FEATS = sorted({f for terms in scoring.CRITERIA.values() for f, _, _ in terms} - {"slope_opt"})
-
-
 def _suitability_2d(b: dict[str, np.ndarray]) -> np.ndarray:
     """SuitabilityScore por píxel sobre la grilla 2D (nan donde falta dato)."""
     h, w = b["NDVI"].shape
-    feats = [f for f in _SCORE_FEATS if f in b]
-    raw = {k: b[k].reshape(-1) for k in set(feats) | {"Slope"}}
-    raw["slope_opt"] = scoring.slope_optimality(raw["Slope"])
+    feats = [f for f in scoring.INDEX_PROFILES.keys() if f in b]
+    raw = {k: b[k].reshape(-1) for k in feats}
+    
     valid = np.isfinite(np.column_stack([raw[k] for k in raw])).all(axis=1)
 
     out = np.full(h * w, np.nan, dtype=float)
     if valid.sum() >= 20:
-        Z = {}
-        for k in feats + ["slope_opt"]:
-            a = raw[k][valid]
-            s = a.std()
-            Z[k] = (a - a.mean()) / s if s > 1e-9 else np.zeros_like(a)
-        out[valid] = scoring.suitability(Z)
+        valid_raw = {k: raw[k][valid] for k in raw}
+        out[valid] = scoring.compute_suitability(valid_raw)
     return out.reshape(h, w)
 
 

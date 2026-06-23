@@ -27,11 +27,12 @@ from sklearn.cluster import DBSCAN, KMeans
 from sklearn.metrics import silhouette_score
 
 from . import scoring
-from .indices import build_index_stack, resolve_indices
+from .diagnosis_rules import infer_causes
+from .indices import build_index_stack, resolve_indices, PRESETS
 
 logger = logging.getLogger(__name__)
 
-ANALYSIS_SCALE = 20
+ANALYSIS_SCALE = 10
 SEMANTIC = ["No apto", "Marginal", "Moderado", "Bueno", "Óptimo"]
 
 
@@ -74,7 +75,7 @@ def _zscore(a: np.ndarray) -> np.ndarray:
 
 # ---------------------------------------------------------------------------
 def _analyze(tif_path: str, index_list: list[str], algorithm: str,
-             n_clusters: int, use_pca: bool) -> dict:
+             n_clusters: int, use_pca: bool, study_type: str) -> dict:
     with rasterio.open(tif_path) as src:
         data = src.read()
         transform, crs = src.transform, src.crs
@@ -88,13 +89,16 @@ def _analyze(tif_path: str, index_list: list[str], algorithm: str,
     raw = {name: flat[valid, i] for i, name in enumerate(index_list)}
     feat_names = list(index_list)
     Z = {name: _zscore(raw[name]) for name in index_list}
-    if "Slope" in index_list:
-        raw["slope_opt"] = scoring.slope_optimality(raw["Slope"])
-        Z["slope_opt"] = _zscore(raw["slope_opt"])
-        feat_names.append("slope_opt")
 
-    # M2 — aptitud por píxel (usa los índices presentes)
-    suit = scoring.suitability(Z)
+    preset = PRESETS.get(study_type, PRESETS["agro"])
+    weights = None
+    overrides = None
+    if isinstance(preset, dict):
+        weights = preset.get("weights")
+        overrides = preset.get("profile_overrides")
+
+    # M2 — aptitud por píxel (usa los índices crudos con normalización MinMax contextual)
+    suit = scoring.compute_suitability(raw, weights=weights, overrides=overrides)
 
     # Matriz de features; PCA opcional para mitigar colinealidad
     X_orig = np.column_stack([Z[n] for n in feat_names])
@@ -109,12 +113,18 @@ def _analyze(tif_path: str, index_list: list[str], algorithm: str,
     # M3 — clustering
     centers = None
     if algorithm == "dbscan":
-        labels = DBSCAN(eps=1.2, min_samples=30, n_jobs=-1).fit_predict(X_cluster)
+        mcs = max(5, valid.sum() // 20)
+        labels = DBSCAN(eps=1.2, min_samples=int(mcs), n_jobs=-1).fit_predict(X_cluster)
+        if len(set(labels) - {-1}) < 2:
+            algorithm = "kmeans"
     elif algorithm == "hdbscan":
         from sklearn.cluster import HDBSCAN
-        mcs = max(50, valid.sum() // 50)
+        mcs = max(5, valid.sum() // 20)
         labels = HDBSCAN(min_cluster_size=int(mcs)).fit_predict(X_cluster)
-    else:
+        if len(set(labels) - {-1}) < 2:
+            algorithm = "kmeans"
+
+    if algorithm not in ("dbscan", "hdbscan"):
         algorithm = "kmeans"
         km = KMeans(n_clusters=n_clusters, n_init=10, random_state=42).fit(X_cluster)
         labels = km.labels_
@@ -156,8 +166,14 @@ def _analyze(tif_path: str, index_list: list[str], algorithm: str,
         row = {"cluster_id": c, "label": label_map[c], "priority": prio,
                "suitability_mean": round(s_mean, 1), "area_ha": round(area, 2),
                "pixel_count": int(sel.sum())}
+        
+        raw_means = {}
         for k, b in present_extra.items():
-            row[k] = round(float(np.mean(raw[b][sel])), 4)
+            val = float(np.mean(raw[b][sel]))
+            row[k] = round(val, 4)
+            raw_means[b] = val
+            
+        row["differential"] = infer_causes(raw_means)
         clusters.append(row)
 
     gdf["label"] = gdf["cluster_id"].map(label_map)
@@ -168,6 +184,7 @@ def _analyze(tif_path: str, index_list: list[str], algorithm: str,
     geojson = json.loads(gdf.to_json())
 
     statistics = {
+        "calibrated": False,
         "algorithm": algorithm,
         "n_clusters": len(ids),
         "total_area_ha": round(sum(area_by.values()), 2),
@@ -179,7 +196,7 @@ def _analyze(tif_path: str, index_list: list[str], algorithm: str,
         "indices_used": index_list,
         "use_pca": use_pca,
         "pca": pca_info,
-        "weights": scoring.WEIGHTS,
+        "weights": weights if weights is not None else scoring.WEIGHTS,
         "clusters": sorted(clusters, key=lambda c: -c["suitability_mean"]),
     }
     return {"clusters_geojson": geojson, "statistics": statistics}
@@ -205,9 +222,9 @@ def _importance(names, X_orig, suit, centers, labels):
         from xgboost import XGBRegressor
         idx = np.arange(X_orig.shape[0])
         if len(idx) > 20000:
-            idx = np.random.RandomState(0).choice(idx, 20000, replace=False)
+            idx = np.random.RandomState(42).choice(idx, 20000, replace=False)
         m = XGBRegressor(n_estimators=120, max_depth=4, learning_rate=0.1,
-                         n_jobs=-1, verbosity=0)
+                         n_jobs=-1, verbosity=0, random_state=42)
         m.fit(X_orig[idx], suit[idx])
         imp = np.asarray(m.feature_importances_, dtype=float)
         total = imp.sum() or 1.0
@@ -246,7 +263,7 @@ def run_pipeline(aoi_geojson: dict, date_start: str, date_end: str,
     stack = build_index_stack(aoi, composite, index_list)
     tif = _download(stack, aoi, ANALYSIS_SCALE, index_list)
     try:
-        out = _analyze(tif, index_list, algorithm, n_clusters, use_pca)
+        out = _analyze(tif, index_list, algorithm, n_clusters, use_pca, study_type)
     finally:
         os.unlink(tif)
 

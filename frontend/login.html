@@ -23,6 +23,9 @@
   </style>
 </head>
 <body>
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
   <div class="term card hud pad">
     <div class="head"><span class="logo">▲</span>
       <div><h1>TERRANODE</h1></div>
@@ -37,11 +40,49 @@
       <div id="err"></div>
     </form>
     <div class="scan">● ● ●  CANAL SEGURO</div>
+
+    <!-- Contenedor del botón de Google -->
+    <div style="margin-top: 20px; display: flex; justify-content: center;">
+      <div id="g_id_onload"
+           data-client_id="371521879385-nshi2ec4ctb54plgumgqkujfgaabr2at.apps.googleusercontent.com"
+           data-context="signin"
+           data-ux_mode="popup"
+           data-callback="handleGoogleCredentialResponse"
+           data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin"
+           data-type="standard"
+           data-shape="rectangular"
+           data-theme="outline"
+           data-text="signin_with"
+           data-size="large"
+           data-logo_alignment="left">
+      </div>
+    </div>
   </div>
 
   <script src="auth.js"></script>
   <script>
     if (getToken()) location.href = "inicio.html";
+
+    // Callback de Google
+    async function handleGoogleCredentialResponse(response) {
+      const err = document.getElementById("err");
+      err.textContent = "";
+      try {
+        const res = await fetch(`${API}/auth/oauth/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+        const data = await jsonOrThrow(res);
+        setToken(data.token);
+        location.href = "inicio.html";
+      } catch (ex) {
+        err.textContent = "Error OAuth: " + ex.message;
+      }
+    }
+
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const err = document.getElementById("err");

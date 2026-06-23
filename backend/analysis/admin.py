@@ -13,3 +13,25 @@ class AnalysisRequestAdmin(admin.GISModelAdmin):
 @admin.register(AnalysisResult)
 class AnalysisResultAdmin(admin.GISModelAdmin):
     list_display = ("request", "images_used", "processing_seconds", "created_at")
+
+
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
+from .models import UserQuota
+
+class UserQuotaInline(admin.StackedInline):
+    model = UserQuota
+    can_delete = False
+    verbose_name_plural = 'Límites y Cuotas de Uso'
+
+class CustomUserAdmin(UserAdmin):
+    inlines = (UserQuotaInline,)
+
+# Re-registrar el UserAdmin
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+
+@admin.register(UserQuota)
+class UserQuotaAdmin(admin.ModelAdmin):
+    list_display = ("user", "analyses_used", "analyses_allowed", "max_area_ha")
+    search_fields = ("user__username", "user__email")

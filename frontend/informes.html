@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
     .report-head { display:flex; align-items:flex-start; gap:18px; }
     .avatar { width:64px; height:64px; border-radius:14px; flex:none; color:#03110b;
@@ -25,7 +27,27 @@
     .toolbar { display:flex; gap:8px; }
     .picker { display:flex; gap:8px; align-items:center; margin-bottom:16px; }
     .picker select { max-width:420px; }
-    @media print { .nav,.toolbar,.picker { display:none !important; } }
+    .callout { padding: 16px; border-radius: 8px; margin: 16px 0; background: var(--bg-1); border-left: 4px solid var(--muted); }
+    .callout.warning { border-left-color: #d9a441; background: rgba(217, 164, 65, 0.1); }
+    .callout.tip { border-left-color: var(--green); background: rgba(31, 122, 61, 0.1); }
+    .callout.danger { border-left-color: #b5651d; background: rgba(181, 101, 29, 0.1); }
+    .callout h4 { margin: 0 0 8px 0; font-family: var(--font-display); color: var(--ink); }
+    .callout p { margin: 0; line-height: 1.5; color: var(--muted); font-size: 14px; }
+    .zone-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+    .zone-card { background: var(--bg-0); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+    .zone-card h3 { margin: 0 0 12px 0; font-size: 15px; color: var(--ink); border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+    .zone-card .cause { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; margin-bottom: 12px; }
+    .zone-card .cause-title { font-weight: 700; display: block; margin-bottom: 4px; color: #fff; }
+    .zone-card .cause-ev { font-size: 13px; color: var(--muted); }
+    .raw-vals { display: flex; gap: 12px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+    .page-break { page-break-before: always; }
+    @media print { 
+      .nav,.toolbar,.picker { display:none !important; } 
+      .page-break { page-break-before: always; }
+      body { background: white !important; color: black !important; }
+      .container { max-width: 100% !important; padding: 0 !important; }
+      .card { border: none !important; box-shadow: none !important; }
+    }
   </style>
 </head>
 <body>

@@ -94,6 +94,17 @@ def run_geospatial_analysis(self, analysis_id: str) -> str:
         analysis.error_message = str(exc)[:2000]
         analysis.finished_at = timezone.now()
         analysis.save(update_fields=["status", "error_message", "finished_at"])
+        
+        # Reembolso de cuota
+        try:
+            if hasattr(analysis.user, 'quota'):
+                user_quota = analysis.user.quota
+                if user_quota.analyses_used > 0:
+                    user_quota.analyses_used -= 1
+                    user_quota.save(update_fields=["analyses_used"])
+        except Exception as q_exc:
+            logger.error("No se pudo reembolsar la cuota al usuario: %s", q_exc)
+
         raise
 
 

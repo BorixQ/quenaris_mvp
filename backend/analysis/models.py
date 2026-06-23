@@ -104,3 +104,28 @@ class AnalysisResult(models.Model):
 
     def __str__(self):
         return f"Result for {self.request_id}"
+
+
+class UserQuota(models.Model):
+    """Límites de uso y cuotas asignadas a un usuario."""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quota"
+    )
+    analyses_allowed = models.PositiveIntegerField(default=1, help_text="Número de análisis permitidos")
+    analyses_used = models.PositiveIntegerField(default=0, help_text="Número de análisis realizados")
+    max_area_ha = models.FloatField(default=1.0, help_text="Área máxima permitida por análisis en hectáreas")
+    max_date_range_days = models.PositiveIntegerField(default=31, help_text="Rango máximo de fechas en días")
+
+    def __str__(self):
+        return f"Quota for {self.user.username}: {self.analyses_used}/{self.analyses_allowed}"
+
+# Señal para crear UserQuota automáticamente cuando se crea un User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_user_quota(sender, instance, created, **kwargs):
+    if created:
+        UserQuota.objects.get_or_create(user=instance)

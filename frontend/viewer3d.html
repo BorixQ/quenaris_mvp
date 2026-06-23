@@ -43,7 +43,8 @@
   <div id="map">
     <div id="panel" class="float">
       <div class="ttl">▸ Visualización</div>
-      <div class="anal" id="analName">—</div>
+      <label class="lab" style="margin-top:0">Análisis</label>
+      <select id="analysisSelect" style="margin-bottom:12px; font-size:11px; padding:6px;"></select>
       <div class="seg3d">
         <button id="modeZon" class="on">ZONAS</button>
         <button id="modePix">DETALLE PÍXEL</button>
@@ -53,9 +54,9 @@
       <div id="pixOnly" style="display:none;">
         <label class="lab">Mes <span class="tval" id="timeLabel">—</span></label>
         <input type="range" id="timeSlider" min="0" max="0" value="0" step="1">
-        <label class="lab">Opacidad</label>
-        <input type="range" id="opacity" min="0" max="100" value="85">
       </div>
+      <label class="lab">Opacidad</label>
+      <input type="range" id="opacity" min="0" max="100" value="65">
       <p class="note" id="modeNote"></p>
     </div>
     <div id="legend" class="float"></div>

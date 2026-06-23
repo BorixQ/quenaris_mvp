@@ -75,7 +75,7 @@ def generate_report(statistics: dict) -> str:
 
     completion = client.chat.completions.create(
         model=settings.LLM_MODEL,
-        max_tokens=2500,
+        max_tokens=8000,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": USER_TEMPLATE.format(stats_json=stats_json)},

@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🛰️ Quenaris
+# 🛰️ Terranode
 
-**Inteligencia geoespacial para agricultura de precisión, energía solar y minería.**
+**Inteligencia geoespacial de precisión para la agricultura y el medio ambiente.**
 
 *El campo no es uniforme. Sus datos tampoco deberían serlo.*
 
@@ -10,21 +10,31 @@
 
 ---
 
-Quenaris convierte imágenes satelitales multiespectrales (Sentinel-2) en **decisiones por zona**: calcula más de 20 índices ecofisiológicos, topográficos y de salinidad, los combina en un **score de aptitud multicriterio (0–100)**, segmenta el terreno en **zonas priorizadas** mediante machine learning, y entrega un **informe ejecutivo redactado por IA** — todo visualizado sobre un mapa de calor temporal y una vista 3D sobre el relieve real.
+Terranode convierte imágenes satelitales multiespectrales (Sentinel-2) en **decisiones agronómicas por zona**. La plataforma calcula más de 20 índices ecofisiológicos, hídricos y de salinidad, combinándolos dinámicamente en un **Score de Aptitud (0–100) específico para el problema que intentas resolver**. Luego segmenta el terreno en **zonas de manejo diferenciado** mediante algoritmos de machine learning y entrega un informe diagnóstico redactado por IA.
 
-Es un MVP funcional desarrollado para el desierto costero de Arequipa (Perú), pensado como una sola infraestructura geoespacial adaptable a múltiples industrias.
+Desarrollado y calibrado con datos del entorno costero y desértico de Arequipa (Perú), está diseñado para maximizar el rendimiento agrícola y minimizar el desperdicio de recursos (agua, fertilizantes, pesticidas).
 
-## ✨ Características
+## ✨ La Ciencia detrás de la Aptitud
 
-- **Definición del área** dibujando un polígono en el mapa (base satelital) o **cargando un CSV** de vértices (WGS84).
-- **+20 índices** de vegetación (NDVI, EVI, NDRE, MSAVI…), agua (NDMI, NDWI…), **salinidad (NDSI, SI2)**, suelo (BSI, NBR, PSRI) y topografía (pendiente, orientación, TPI, TRI, exposición solar).
-- **Scoring multicriterio** → SuitabilityScore 0–100 y prioridad por zona (Muy Alta / Alta / Media / Baja).
-- **Clasificación validada** con K-Means, DBSCAN o HDBSCAN + silhouette + **importancia de variables (XGBoost)** + **PCA** opcional.
-- **Presets por tipo de estudio** (Agricultura activo; Solar y Minería en hoja de ruta).
-- **Mapa de calor temporal**: evolución mes a mes de cada índice y de la aptitud.
-- **Vista 3D**: coropleta vectorial drapeada sobre el relieve + detalle ráster por píxel.
-- **Informes** estilo ejecutivo con gráficas (Chart.js) y diagnóstico por IA.
-- **Procesamiento asíncrono** (no bloquea): la petición se encola y el frontend hace polling.
+En Terranode, la "Aptitud" no es un valor genérico; su fórmula muta radicalmente dependiendo de tu objetivo operativo:
+
+1. **Salud General**: La aptitud castiga el suelo desnudo, la topografía extrema y la salinidad, premiando el vigor de la biomasa (NDVI, EVI). Zonas de baja aptitud sugieren áreas estructuralmente defectuosas.
+2. **Estado Hídrico**: Descarta el vigor y se centra exclusivamente en el NDMI y NDWI. La aptitud alta significa un riego perfecto; la aptitud baja indica estrés por sequía inminente o exceso destructivo de agua (encharcamiento).
+3. **Alerta Fitosanitaria**: La aptitud rastrea la degradación celular. Castiga severamente caídas súbitas de clorofila (NDRE) y senescencia acelerada (PSRI). Zonas de baja aptitud son epicentros probables de plagas u hongos.
+4. **Nutrición (Fertilización)**: Diseñado para Tasa Variable (VRT). La aptitud baja marca sectores vivos pero desnutridos (baja biomasa o clorosis), donde se requiere inyectar N-P-K.
+5. **Potencial de Reforestación**: Funciona a la inversa; busca suelo disponible (BSI) y humedad base, descartando zonas salinas. La aptitud alta marca los espacios geográficos más hospitalarios para el prendimiento de plantones.
+
+*(Expansiones futuras: La arquitectura base soportará energía solar, minería y riesgo inmobiliario, pero el núcleo actual es estrictamente agroambiental).*
+
+## 🚀 Características Principales
+
+- **Definición del área** dibujando un polígono en el mapa o cargando un CSV de vértices.
+- **+20 índices procesados en la nube**: Vegetación, agua, salinidad profunda, composición de suelo y topografía.
+- **Scoring multicriterio escalado**: Cálculo de aptitud (0–100) estirado estadísticamente para maximizar el contraste, transformado inversamente a una **Prioridad de Manejo** (Muy Alta prioridad = urgencia de intervención).
+- **Segmentación No Supervisada** con K-Means, DBSCAN o HDBSCAN + silhouette y **XGBoost** para explicabilidad de IA.
+- **Mapa de calor temporal y Visor 3D**: Evalúa la coropleta vectorial sobre el relieve real sin distorsión.
+- **Informes Ejecutivos Contextuales**: Reportes que adaptan dinámicamente sus glosarios, radares y tablas al tipo de estudio agrícola elegido.
+- **Procesamiento asíncrono**: Backend tolerante a fallos soportado por Celery y Redis.
 
 ## 🏗️ Arquitectura
 
@@ -61,7 +71,7 @@ Servicios (`docker-compose.yml`): **db** (PostGIS) · **redis** · **web** (Djan
 ## 📁 Estructura
 
 ```
-Quenaris/
+Terranode/
 ├── docker-compose.yml          # Orquestación de los 5 servicios
 ├── .env.example                # Plantilla de variables (copiar a .env)
 ├── deploy/nginx.conf           # Nginx: sirve frontend + proxy /api y /media
@@ -92,8 +102,8 @@ Quenaris/
 Requisitos: Docker + Docker Compose.
 
 ```bash
-git clone https://github.com/TU_USUARIO/quenaris.git
-cd quenaris
+git clone https://github.com/TU_USUARIO/terranode.git
+cd terranode
 cp .env.example .env            # completar variables (ver abajo)
 
 # Clave de Google Earth Engine (service account)

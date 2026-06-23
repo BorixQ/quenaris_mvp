@@ -25,3 +25,6 @@ Pillow>=10.0
 
 # LLM — DeepSeek es compatible con la API de OpenAI, se usa el SDK de OpenAI.
 openai>=1.40
+
+# OAuth
+google-auth>=2.29

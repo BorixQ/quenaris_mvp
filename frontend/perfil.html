@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terranode — Perfil</title>
+  <link rel="stylesheet" href="app.css" />
+  <style>
+    .profile-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: var(--bg-1);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 32px;
+    }
+    .profile-header {
+      font-family: var(--font-display);
+      font-size: 24px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 16px;
+    }
+    .profile-group {
+      margin-bottom: 24px;
+    }
+    .profile-group h3 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .profile-field {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .profile-field .label {
+      color: var(--faint);
+    }
+    .profile-field .value {
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .quota-box {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .quota-bar {
+      height: 6px;
+      background: var(--line);
+      border-radius: 3px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .quota-fill {
+      height: 100%;
+      background: var(--cyan);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .btn-upgrade {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 8px 16px;
+      background: var(--cyan);
+      color: var(--bg-0);
+      text-decoration: none;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: bold;
+      transition: opacity 0.2s;
+    }
+    .btn-upgrade:hover, .btn-save:hover {
+      opacity: 0.8;
+    }
+    .profile-input {
+      background: var(--bg-0);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 14px;
+      width: 200px;
+    }
+    .btn-save {
+      background: var(--bg-3);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      padding: 6px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+    .btn-save:hover { background: var(--bg-2); }
+    .btn-logout {
+      background: rgba(220, 38, 38, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(220, 38, 38, 0.3);
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 32px;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { background: rgba(220, 38, 38, 0.2); }
+  </style>
+</head>
+<body>
+  <!-- nav inyectado dinámicamente -->
+  <div id="nav" data-active="perfil"></div>
+
+  <div class="profile-container">
+    <div class="profile-header">Perfil de Usuario</div>
+    
+    <div class="profile-group">
+      <h3>Información Personal</h3>
+      <div class="profile-field">
+        <span class="label">Correo Electrónico:</span>
+        <span class="value" id="pEmail">Cargando...</span>
+      </div>
+      <div class="profile-field" style="align-items:center;">
+        <span class="label">Nombres:</span>
+        <input type="text" id="pFirstName" class="profile-input" placeholder="Tus nombres">
+      </div>
+      <div class="profile-field" style="align-items:center;">
+        <span class="label">Apellidos:</span>
+        <input type="text" id="pLastName" class="profile-input" placeholder="Tus apellidos">
+      </div>
+      <div style="text-align:right;">
+        <button id="btnSaveProfile" class="btn-save">Guardar Cambios</button>
+      </div>
+      <div class="profile-field" style="margin-top:16px;">
+        <span class="label">Rol:</span>
+        <span class="value" id="pRole">—</span>
+      </div>
+    </div>
+
+    <div class="profile-group">
+      <h3>Cuota de Análisis</h3>
+      <div class="quota-box">
+        <div class="profile-field">
+          <span class="label">Análisis Usados:</span>
+          <span class="value"><span id="qUsed">0</span> de <span id="qMax">0</span></span>
+        </div>
+        <div class="quota-bar">
+          <div class="quota-fill" id="qBar"></div>
+        </div>
+        <div style="margin-top: 12px; font-size: 12px; color: var(--muted);">
+          Área máxima por análisis: <span id="qArea">0</span> hectáreas.<br>
+          Rango máximo de fechas: <span id="qDays">0</span> días.
+        </div>
+        <a href="https://facebook.com" target="_blank" class="btn-upgrade">▸ AMPLIAR CUOTA</a>
+      </div>
+    </div>
+    
+    <button class="btn-logout" id="btnLogoutPage">⎋ CERRAR SESIÓN</button>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    requireAuth();
+    
+    // Cargar perfil
+    if (typeof getToken === "function" && getToken()) {
+      fetch(`${typeof API !== 'undefined' ? API : '/api'}/auth/quota/`, { headers: authHeaders() })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("pEmail").textContent = data.email || "No especificado";
+          document.getElementById("pFirstName").value = data.first_name || "";
+          document.getElementById("pLastName").value = data.last_name || "";
+          document.getElementById("pRole").textContent = data.is_superuser ? "Administrador (SYS)" : "Usuario Estándar";
+          
+          document.getElementById("qUsed").textContent = data.analyses_used;
+          document.getElementById("qMax").textContent = data.analyses_allowed;
+          document.getElementById("qArea").textContent = data.max_area_ha;
+          document.getElementById("qDays").textContent = data.max_date_range_days;
+          
+          let pct = 0;
+          if (data.analyses_allowed > 0) {
+            pct = (data.analyses_used / data.analyses_allowed) * 100;
+          }
+          document.getElementById("qBar").style.width = Math.min(pct, 100) + "%";
+        })
+        .catch(err => console.error("Error al cargar perfil:", err));
+        
+      document.getElementById("btnSaveProfile").addEventListener("click", () => {
+        const btn = document.getElementById("btnSaveProfile");
+        btn.textContent = "Guardando...";
+        fetch(`${typeof API !== 'undefined' ? API : '/api'}/auth/quota/`, {
+          method: "POST",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({
+            first_name: document.getElementById("pFirstName").value,
+            last_name: document.getElementById("pLastName").value
+          })
+        })
+        .then(res => res.json())
+        .then(() => {
+          btn.textContent = "¡Guardado!";
+          setTimeout(() => btn.textContent = "Guardar Cambios", 2000);
+        })
+        .catch(() => btn.textContent = "Error al guardar");
+      });
+      
+      document.getElementById("btnLogoutPage").addEventListener("click", () => {
+        if (typeof logout === "function") logout();
+      });
+    }
+  </script>
+  <script src="nav.js"></script>
+</body>
+</html>
