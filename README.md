@@ -54,7 +54,7 @@ En Terranode, la "Aptitud" no es un valor genérico; su fórmula muta radicalmen
                   GeoJSON + heatmaps + LLM → PostGIS
 ```
 
-Servicios (`docker-compose.yml`): **db** (PostGIS) · **redis** · **web** (Django + Gunicorn) · **worker** (Celery) · **frontend** (Nginx).
+Servicios (`docker-compose.yml`): **db** (PostGIS) · **redis** · **web** (Django + Gunicorn) · **worker** (Celery) · **frontend** (Nginx) · **cloudflared** (túnel de Cloudflare).
 
 ## 🧰 Stack
 
@@ -71,8 +71,8 @@ Servicios (`docker-compose.yml`): **db** (PostGIS) · **redis** · **web** (Djan
 ## 📁 Estructura
 
 ```
-Terranode/
-├── docker-compose.yml          # Orquestación de los 5 servicios
+quenaris_mvp/
+├── docker-compose.yml          # Orquestación de los servicios
 ├── .env.example                # Plantilla de variables (copiar a .env)
 ├── deploy/nginx.conf           # Nginx: sirve frontend + proxy /api y /media
 ├── backend/
@@ -99,11 +99,11 @@ Terranode/
 
 ## 🚀 Puesta en marcha (local)
 
-Requisitos: Docker + Docker Compose.
+Requisitos: Docker + Docker Compose, credenciales de Google Earth Engine y configuración de los servicios externos. El Compose actual incluye `cloudflared` y exige `CLOUDFLARE_TUNNEL_TOKEN`; completa también esta variable antes de iniciar el conjunto de servicios.
 
 ```bash
-git clone https://github.com/TU_USUARIO/terranode.git
-cd terranode
+git clone https://github.com/BorixQ/quenaris_mvp.git
+cd quenaris_mvp
 cp .env.example .env            # completar variables (ver abajo)
 
 # Clave de Google Earth Engine (service account)
@@ -147,6 +147,9 @@ GEE_PROJECT=id-de-tu-proyecto-gcp
 LLM_API_KEY=sk-...
 LLM_BASE_URL=https://api.deepseek.com
 LLM_MODEL=deepseek-chat
+
+# Cloudflare Tunnel (requerido por el Compose actual)
+CLOUDFLARE_TUNNEL_TOKEN=token-de-tu-tunel
 ```
 
 **Requisitos previos de Google Earth Engine:** crear un proyecto en Google Cloud, habilitar la *Earth Engine API*, **registrar el proyecto** en [code.earthengine.google.com/register](https://code.earthengine.google.com/register), crear una *service account* con el rol *Earth Engine Resource Writer* **y** *Service Usage Consumer*, y descargar su clave JSON.
