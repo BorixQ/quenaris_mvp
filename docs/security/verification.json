@@ -1,0 +1,49 @@
+{
+  "timestamp_utc": "2026-11-10T21:21:20.323594+00:00",
+  "environment": "Windows development machine, Ubuntu WSL, isolated Docker Compose project quenaris-integration",
+  "tests_passed": 57,
+  "pytest_seconds": 14.75,
+  "compose_base_valid": true,
+  "compose_integration_valid": true,
+  "django_check_issues": 0,
+  "pending_model_changes": false,
+  "migration_applied_through": "0007_security_identity_attempt",
+  "ports": {
+    "frontend": {
+      "80/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "18080"
+        }
+      ]
+    },
+    "admin": {
+      "8000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "18081"
+        }
+      ]
+    },
+    "web": {
+      "8000/tcp": null
+    },
+    "worker": {
+      "8000/tcp": null
+    },
+    "db": {
+      "5432/tcp": null
+    },
+    "redis": {
+      "6379/tcp": null
+    },
+    "beat": {
+      "8000/tcp": null
+    }
+  },
+  "app_image_id": "sha256:42c16323b9f29929cfd1aacd2b050b63793a9eae65b8e323db6d75e486f7bd96",
+  "backend_network_internal": true,
+  "homelab_modified": false,
+  "github_modified": false,
+  "live_google_app_login_tested": false
+}

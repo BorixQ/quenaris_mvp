@@ -49,6 +49,9 @@ class AnalysisRequest(models.Model):
     # Ciclo de vida
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
     celery_task_id = models.CharField(max_length=64, blank=True, default="")
+    quota_charged = models.BooleanField(default=False)
+    attempt_token = models.UUIDField(null=True, editable=False)
+    attempt_started_at = models.DateTimeField(null=True, editable=False)
     error_message = models.TextField(blank=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -65,7 +68,7 @@ class AnalysisRequest(models.Model):
     @property
     def area_ha(self) -> float:
         """Área aproximada en hectáreas (transforma a proyección métrica)."""
-        geom = self.aoi.transform(3857, clone=True)
+        geom = self.aoi.transform(6933, clone=True)
         return round(geom.area / 10_000, 2)
 
 
@@ -129,3 +132,8 @@ from django.dispatch import receiver
 def create_user_quota(sender, instance, created, **kwargs):
     if created:
         UserQuota.objects.get_or_create(user=instance)
+
+
+class GoogleIdentity(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="google_identity")
+    subject = models.CharField(max_length=255, unique=True)

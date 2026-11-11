@@ -1,0 +1,21 @@
+import type { Analysis, Cluster } from '../types';
+import { indexName, indexUnit } from '../data/studies';
+import { number, percent } from '../lib/format';
+import { Notice } from '../components/UI';
+import s from '../styles/App.module.css';
+
+export function clusterLabel(cluster: Cluster) { return cluster.cluster_id < 0 ? 'Sin agrupación' : `Grupo ${cluster.cluster_id + 1}`; }
+export function ClusterTable({ analysis, full = false }: { analysis: Analysis; full?: boolean }) {
+  const stats = analysis.result!.statistics, indices = full ? stats.indices_used || [] : [];
+  return <section className={s.card}><div className={s.cardHead}><h2>{full ? 'Valores por grupo' : 'Diferencias entre grupos'}</h2><span>{stats.clusters?.length || 0} grupos registrados</span></div>
+    <div className={s.tableScroll} tabIndex={0} role="region" aria-label="Valores por grupo, tabla desplazable"><table><thead><tr><th scope="col">Grupo</th><th scope="col">Superficie (ha)</th><th scope="col">Puntuación relativa</th><th scope="col">Orden de inspección</th>{indices.map(i => <th scope="col" key={i}>{indexName(i)}<br /><small>{indexUnit(i)}</small></th>)}</tr></thead><tbody>{stats.clusters?.map(c => <tr key={c.cluster_id}><th scope="row">{clusterLabel(c)}</th><td>{number(c.area_ha, 2)}</td><td>{number(c.suitability_mean)} /100</td><td>{c.priority || 'No registrado'}</td>{indices.map(i => <td key={i}>{number(c[`${i.toLowerCase()}_mean`], 3)}</td>)}</tr>)}</tbody></table></div>
+    {!stats.clusters?.length && <p className={`${s.small} ${s.pad}`}>No hay estadísticas de grupos registradas.</p>}<p className={`${s.small} ${s.pad}`} style={{ margin: 0 }}>El orden es heurístico y relativo. No representa urgencia de tratamiento. Un guion indica un valor no disponible, no cero.</p>
+  </section>;
+}
+export function TechnicalData({ analysis }: { analysis: Analysis }) {
+  const result = analysis.result!, stats = result.statistics;
+  return <div className={s.stack}><ClusterTable analysis={analysis} full /><section className={`${s.card} ${s.pad}`}><h2>Procedencia y configuración</h2><dl><div className={s.keyValue}><dt>Identificador</dt><dd>{analysis.id}</dd></div><div className={s.keyValue}><dt>Colección satelital</dt><dd>{result.satellite_collection || 'No registrada'}</dd></div><div className={s.keyValue}><dt>Versión científica</dt><dd>{stats.science_version || 'Histórica, sin versión registrada'}</dd></div><div className={s.keyValue}><dt>Cuadrícula de salida</dt><dd>{number(stats.analysis_scale_m, 0)} m</dd></div><div className={s.keyValue}><dt>Cobertura utilizable</dt><dd>{percent(stats.quality?.valid_fraction)}</dd></div><div className={s.keyValue}><dt>Píxeles utilizables</dt><dd>{number(stats.quality?.valid_pixels, 0)}</dd></div><div className={s.keyValue}><dt>Agrupación</dt><dd>{stats.algorithm || analysis.algorithm}{analysis.use_pca ? ' · PCA' : ''}</dd></div><div className={s.keyValue}><dt>Silhouette</dt><dd>{number(stats.silhouette, 3)}</dd></div><div className={s.keyValue}><dt>Píxeles sin agrupación</dt><dd>{number(stats.noise_pixels, 0)}</dd></div></dl>
+      <p className={s.small}>Bandas ópticas nativas de 10/20 m y DSM de unos 30 m cuando así conste en la versión científica. La cuadrícula de salida no añade detalle. Silhouette describe separación geométrica, no precisión agronómica.</p>
+      {!!stats.weights && <details><summary>Pesos efectivos de la puntuación</summary><ul className={s.small}>{Object.entries(stats.weights).map(([key, value]) => <li key={key}>{indexName(key)}: {number(value, 3)}</li>)}</ul></details>}
+    </section>{!!stats.feature_importance?.length && <section className={`${s.card} ${s.pad}`}><h2>Importancia interna de variables</h2><Notice tone="info">Esta medida describe el modelo interno de puntuación. No identifica causas ni demuestra precisión en campo.</Notice><div className={s.tableScroll} tabIndex={0} role="region" aria-label="Importancia de variables"><table><thead><tr><th scope="col">Variable</th><th scope="col">Importancia relativa</th></tr></thead><tbody>{stats.feature_importance.map(v => <tr key={v.feature}><th scope="row">{indexName(v.feature)}</th><td>{percent(v.importance)}</td></tr>)}</tbody></table></div></section>}</div>;
+}

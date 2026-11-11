@@ -1,0 +1,194 @@
+{
+  "timestamp_utc": "2026-11-10T19:45:37.007911+00:00",
+  "status": "executed",
+  "calibrated": false,
+  "date_start": "2025-06-01",
+  "date_end_exclusive": "2025-07-01",
+  "scale_m": 20,
+  "max_counted_requests": 30,
+  "counted_requests": 10,
+  "request_definition": "EE computeValue + getDownloadId; excludes auth, algorithm discovery and byte transfers",
+  "cases": [
+    {
+      "name": "agricultural_context_majes",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -72.142,
+              -16.322
+            ],
+            [
+              -72.138,
+              -16.322
+            ],
+            [
+              -72.138,
+              -16.318
+            ],
+            [
+              -72.142,
+              -16.318
+            ],
+            [
+              -72.142,
+              -16.322
+            ]
+          ]
+        ]
+      },
+      "study": "agro",
+      "ground_truth": false,
+      "status": "failed",
+      "error_type": "EEException",
+      "counted_requests": 2,
+      "elapsed_seconds": 6.55
+    },
+    {
+      "name": "highland_context_chiguata",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.392,
+              -16.412
+            ],
+            [
+              -71.388,
+              -16.412
+            ],
+            [
+              -71.388,
+              -16.408
+            ],
+            [
+              -71.392,
+              -16.408
+            ],
+            [
+              -71.392,
+              -16.412
+            ]
+          ]
+        ]
+      },
+      "study": "reforestacion",
+      "ground_truth": false,
+      "status": "failed",
+      "error_type": "EEException",
+      "counted_requests": 2,
+      "elapsed_seconds": 4.17
+    },
+    {
+      "name": "ocean_context",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -72.10199999999999,
+              -17.151999999999997
+            ],
+            [
+              -72.098,
+              -17.151999999999997
+            ],
+            [
+              -72.098,
+              -17.148
+            ],
+            [
+              -72.10199999999999,
+              -17.148
+            ],
+            [
+              -72.10199999999999,
+              -17.151999999999997
+            ]
+          ]
+        ]
+      },
+      "study": "agro",
+      "ground_truth": false,
+      "status": "failed",
+      "error_type": "EEException",
+      "counted_requests": 2,
+      "elapsed_seconds": 4.17
+    },
+    {
+      "name": "misti_rock_context",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.411,
+              -16.296
+            ],
+            [
+              -71.40700000000001,
+              -16.296
+            ],
+            [
+              -71.40700000000001,
+              -16.292
+            ],
+            [
+              -71.411,
+              -16.292
+            ],
+            [
+              -71.411,
+              -16.296
+            ]
+          ]
+        ]
+      },
+      "study": "reforestacion",
+      "ground_truth": false,
+      "status": "failed",
+      "error_type": "EEException",
+      "counted_requests": 2,
+      "elapsed_seconds": 3.89
+    },
+    {
+      "name": "urban_context_arequipa",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.538,
+              -16.4
+            ],
+            [
+              -71.534,
+              -16.4
+            ],
+            [
+              -71.534,
+              -16.396
+            ],
+            [
+              -71.538,
+              -16.396
+            ],
+            [
+              -71.538,
+              -16.4
+            ]
+          ]
+        ]
+      },
+      "study": "agro",
+      "ground_truth": false,
+      "status": "failed",
+      "error_type": "EEException",
+      "counted_requests": 2,
+      "elapsed_seconds": 3.2
+    }
+  ],
+  "note": "Coordinate contexts are unlabelled probes, not measured truth. No claim of agronomic accuracy."
+}

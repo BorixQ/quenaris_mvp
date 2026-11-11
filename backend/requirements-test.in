@@ -1,0 +1,6 @@
+-c requirements.txt
+-r requirements.in
+pytest>=8.4,<10
+pytest-django>=4.11,<5
+pip-audit>=2.9,<3
+playwright>=1.55,<2

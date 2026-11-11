@@ -7,7 +7,7 @@ from .models import AnalysisRequest, AnalysisResult
 class AnalysisRequestAdmin(admin.GISModelAdmin):
     list_display = ("id", "user", "status", "date_start", "date_end", "created_at")
     list_filter = ("status", "algorithm")
-    readonly_fields = ("celery_task_id", "created_at", "started_at", "finished_at")
+    readonly_fields = ("celery_task_id", "created_at", "started_at", "finished_at", "status", "quota_charged", "attempt_token", "attempt_started_at")
 
 
 @admin.register(AnalysisResult)
@@ -25,7 +25,8 @@ class UserQuotaInline(admin.StackedInline):
     verbose_name_plural = 'Límites y Cuotas de Uso'
 
 class CustomUserAdmin(UserAdmin):
-    inlines = (UserQuotaInline,)
+    def get_inlines(self, request, obj=None):
+        return (UserQuotaInline,) if obj else ()
 
 # Re-registrar el UserAdmin
 admin.site.unregister(User)
@@ -35,3 +36,7 @@ admin.site.register(User, CustomUserAdmin)
 class UserQuotaAdmin(admin.ModelAdmin):
     list_display = ("user", "analyses_used", "analyses_allowed", "max_area_ha")
     search_fields = ("user__username", "user__email")
+
+
+from .models import GoogleIdentity
+admin.site.register(GoogleIdentity)

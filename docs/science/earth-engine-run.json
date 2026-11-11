@@ -1,0 +1,943 @@
+{
+  "timestamp_utc": "2026-11-10T19:47:09.504472+00:00",
+  "status": "executed",
+  "calibrated": false,
+  "date_start": "2025-06-01",
+  "date_end_exclusive": "2025-07-01",
+  "scale_m": 20,
+  "max_counted_requests": 30,
+  "counted_requests": 10,
+  "request_definition": "EE computeValue + getDownloadId; excludes auth, algorithm discovery and byte transfers",
+  "cases": [
+    {
+      "name": "agricultural_context_majes",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -72.142,
+              -16.322
+            ],
+            [
+              -72.138,
+              -16.322
+            ],
+            [
+              -72.138,
+              -16.318
+            ],
+            [
+              -72.142,
+              -16.318
+            ],
+            [
+              -72.142,
+              -16.322
+            ]
+          ]
+        ]
+      },
+      "study": "agro",
+      "ground_truth": false,
+      "status": "completed",
+      "statistics": {
+        "calibrated": false,
+        "science_version": "relative-percentiles-v2",
+        "score_interpretation": "relative_exploratory",
+        "warnings": [
+          "Resultado exploratorio sin calibración de campo.",
+          "Puntuación relativa al AOI y periodo; no comparable con otras corridas.",
+          "Suelo expuesto no implica disponibilidad para reforestar; verificar pastizales nativos, uso y tenencia.",
+          "La máscara SCL puede conservar superficies urbanas y cometer errores en terreno montañoso."
+        ],
+        "scoring_reference": {
+          "version": "relative-percentiles-v2",
+          "scope": "AOI-period-relative",
+          "profiles": {
+            "NDVI": {
+              "direction": "high_good",
+              "weight": 0.3125,
+              "low": 0.07226402133703232,
+              "high": 0.8647536993026733
+            },
+            "EVI": {
+              "direction": "high_good",
+              "weight": 0.125,
+              "low": 0.06603052228689194,
+              "high": 0.804057011604309
+            },
+            "NDRE": {
+              "direction": "high_good",
+              "weight": 0.0625,
+              "low": 0.0327388758957386,
+              "high": 0.6639061450958251
+            },
+            "MSAVI": {
+              "direction": "high_good",
+              "weight": 0.125,
+              "low": 0.05212460055947304,
+              "high": 0.7498368597030637
+            },
+            "NDMI": {
+              "direction": "high_good",
+              "weight": 0.25,
+              "low": -0.07597310781478882,
+              "high": 0.4311598515510558
+            },
+            "BSI": {
+              "direction": "low_good",
+              "weight": 0.125,
+              "low": -0.3862007617950439,
+              "high": 0.14949669957160946
+            }
+          }
+        },
+        "quality": {
+          "valid_pixels": 529,
+          "aoi_grid_pixels": 529,
+          "valid_fraction": 1.0,
+          "min_observations": 17,
+          "mean_observations": 17.0,
+          "mask": "SCL classes 4,5; finite selected bands"
+        },
+        "analysis_scale_m": 20,
+        "collections": {
+          "optical": "COPERNICUS/S2_SR_HARMONIZED",
+          "surface_model": "COPERNICUS/DEM/GLO30_2024_1"
+        },
+        "date_end_exclusive": true,
+        "area_method": "WGS84 ellipsoidal geometry area; displayed AOI/quota uses equal-area EPSG:6933",
+        "native_resolution_note": "Optical 10/20m; DSM ~30m; output grid 20m; nearest resampling.",
+        "priority_interpretation": "heuristic inspection rank, not treatment urgency",
+        "diagnostic_status": "withheld_no_field_validation",
+        "algorithm": "kmeans",
+        "n_clusters": 3,
+        "noise_pixels": 0,
+        "total_area_ha": 20.19,
+        "suitability_global_mean": 34.4,
+        "priority_distribution": {
+          "Muy Alta": 13.78,
+          "Media": 6.41
+        },
+        "silhouette": 0.26,
+        "feature_importance": [
+          {
+            "feature": "NBR",
+            "importance": 0.101
+          },
+          {
+            "feature": "NDVI",
+            "importance": 0.101
+          },
+          {
+            "feature": "NDRE",
+            "importance": 0.1
+          },
+          {
+            "feature": "BSI",
+            "importance": 0.1
+          },
+          {
+            "feature": "NDWI",
+            "importance": 0.1
+          },
+          {
+            "feature": "NDMI",
+            "importance": 0.098
+          },
+          {
+            "feature": "EVI",
+            "importance": 0.097
+          },
+          {
+            "feature": "MSAVI",
+            "importance": 0.097
+          },
+          {
+            "feature": "SolarExposure",
+            "importance": 0.076
+          },
+          {
+            "feature": "Slope",
+            "importance": 0.076
+          }
+        ],
+        "importance_method": "centroids",
+        "indices_used": [
+          "NDVI",
+          "EVI",
+          "NDRE",
+          "MSAVI",
+          "NDMI",
+          "NDWI",
+          "BSI",
+          "NBR",
+          "Slope",
+          "TPI",
+          "TRI",
+          "SolarExposure",
+          "Elevation"
+        ],
+        "use_pca": false,
+        "pca": null,
+        "weights": {
+          "NDVI": 0.3125,
+          "EVI": 0.125,
+          "NDRE": 0.0625,
+          "MSAVI": 0.125,
+          "NDMI": 0.25,
+          "BSI": 0.125
+        },
+        "clusters": [
+          {
+            "cluster_id": 2,
+            "label": "Grupo 3",
+            "priority": "Media",
+            "suitability_mean": 70.3,
+            "area_ha": 6.41,
+            "pixel_count": 168,
+            "ndvi_mean": 0.6621,
+            "evi_mean": 0.5346,
+            "ndre_mean": 0.4782,
+            "msavi_mean": 0.4827,
+            "ndmi_mean": 0.3017,
+            "ndwi_mean": -0.6586,
+            "bsi_mean": -0.214,
+            "nbr_mean": 0.4923,
+            "slope_mean": 1.8542,
+            "tpi_mean": 0.0666,
+            "tri_mean": 1.5894,
+            "solarexposure_mean": 0.3466,
+            "elevation_mean": 1557.4807,
+            "solar_mean": 0.3466,
+            "differential": []
+          },
+          {
+            "cluster_id": 1,
+            "label": "Grupo 2",
+            "priority": "Muy Alta",
+            "suitability_mean": 17.8,
+            "area_ha": 8.05,
+            "pixel_count": 211,
+            "ndvi_mean": 0.2274,
+            "evi_mean": 0.1631,
+            "ndre_mean": 0.1486,
+            "msavi_mean": 0.1456,
+            "ndmi_mean": 0.0311,
+            "ndwi_mean": -0.3354,
+            "bsi_mean": 0.0676,
+            "nbr_mean": 0.1182,
+            "slope_mean": 1.7039,
+            "tpi_mean": -0.0126,
+            "tri_mean": 1.6005,
+            "solarexposure_mean": 0.4973,
+            "elevation_mean": 1557.6919,
+            "solar_mean": 0.4973,
+            "differential": []
+          },
+          {
+            "cluster_id": 0,
+            "label": "Grupo 1",
+            "priority": "Muy Alta",
+            "suitability_mean": 17.5,
+            "area_ha": 5.73,
+            "pixel_count": 150,
+            "ndvi_mean": 0.227,
+            "evi_mean": 0.165,
+            "ndre_mean": 0.1453,
+            "msavi_mean": 0.148,
+            "ndmi_mean": 0.0247,
+            "ndwi_mean": -0.338,
+            "bsi_mean": 0.0724,
+            "nbr_mean": 0.1173,
+            "slope_mean": 2.2813,
+            "tpi_mean": 0.0392,
+            "tri_mean": 1.6981,
+            "solarexposure_mean": 0.1748,
+            "elevation_mean": 1558.0778,
+            "solar_mean": 0.1748,
+            "differential": []
+          }
+        ],
+        "date_range": {
+          "start": "2025-06-01",
+          "end": "2025-07-01"
+        },
+        "study_type": "agro",
+        "images_used": 21
+      },
+      "counted_requests": 2,
+      "elapsed_seconds": 10.47
+    },
+    {
+      "name": "highland_context_chiguata",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.392,
+              -16.412
+            ],
+            [
+              -71.388,
+              -16.412
+            ],
+            [
+              -71.388,
+              -16.408
+            ],
+            [
+              -71.392,
+              -16.408
+            ],
+            [
+              -71.392,
+              -16.412
+            ]
+          ]
+        ]
+      },
+      "study": "reforestacion",
+      "ground_truth": false,
+      "status": "completed",
+      "statistics": {
+        "calibrated": false,
+        "science_version": "relative-percentiles-v2",
+        "score_interpretation": "relative_exploratory",
+        "warnings": [
+          "Resultado exploratorio sin calibración de campo.",
+          "Puntuación relativa al AOI y periodo; no comparable con otras corridas.",
+          "Suelo expuesto no implica disponibilidad para reforestar; verificar pastizales nativos, uso y tenencia.",
+          "La máscara SCL puede conservar superficies urbanas y cometer errores en terreno montañoso."
+        ],
+        "scoring_reference": {
+          "version": "relative-percentiles-v2",
+          "scope": "AOI-period-relative",
+          "profiles": {
+            "BSI": {
+              "direction": "high_good",
+              "weight": 0.4,
+              "low": -0.03800499528646469,
+              "high": 0.15149514228105546
+            },
+            "MSAVI": {
+              "direction": "low_good",
+              "weight": 0.3,
+              "low": 0.06303703784942627,
+              "high": 0.2333368438482285
+            },
+            "NDMI": {
+              "direction": "high_good",
+              "weight": 0.3,
+              "low": -0.10590540558099747,
+              "high": 0.13875784769654304
+            }
+          }
+        },
+        "quality": {
+          "valid_pixels": 552,
+          "aoi_grid_pixels": 552,
+          "valid_fraction": 1.0,
+          "min_observations": 12,
+          "mean_observations": 12.0,
+          "mask": "SCL classes 4,5; finite selected bands"
+        },
+        "analysis_scale_m": 20,
+        "collections": {
+          "optical": "COPERNICUS/S2_SR_HARMONIZED",
+          "surface_model": "COPERNICUS/DEM/GLO30_2024_1"
+        },
+        "date_end_exclusive": true,
+        "area_method": "WGS84 ellipsoidal geometry area; displayed AOI/quota uses equal-area EPSG:6933",
+        "native_resolution_note": "Optical 10/20m; DSM ~30m; output grid 20m; nearest resampling.",
+        "priority_interpretation": "heuristic inspection rank, not treatment urgency",
+        "diagnostic_status": "withheld_no_field_validation",
+        "algorithm": "kmeans",
+        "n_clusters": 3,
+        "noise_pixels": 0,
+        "total_area_ha": 21.06,
+        "suitability_global_mean": 56.8,
+        "priority_distribution": {
+          "Media": 15.3,
+          "Alta": 3.85,
+          "Muy Alta": 1.91
+        },
+        "silhouette": 0.502,
+        "feature_importance": [
+          {
+            "feature": "NDMI",
+            "importance": 0.234
+          },
+          {
+            "feature": "BSI",
+            "importance": 0.231
+          },
+          {
+            "feature": "MSAVI",
+            "importance": 0.231
+          },
+          {
+            "feature": "Slope",
+            "importance": 0.173
+          },
+          {
+            "feature": "Elevation",
+            "importance": 0.131
+          }
+        ],
+        "importance_method": "centroids",
+        "indices_used": [
+          "BSI",
+          "MSAVI",
+          "NDMI",
+          "Slope",
+          "Elevation"
+        ],
+        "use_pca": false,
+        "pca": null,
+        "weights": {
+          "BSI": 0.4,
+          "MSAVI": 0.3,
+          "NDMI": 0.3
+        },
+        "clusters": [
+          {
+            "cluster_id": 0,
+            "label": "Grupo 3",
+            "priority": "Media",
+            "suitability_mean": 60.2,
+            "area_ha": 15.3,
+            "pixel_count": 401,
+            "bsi_mean": 0.1176,
+            "msavi_mean": 0.1054,
+            "ndmi_mean": -0.0661,
+            "slope_mean": 4.2201,
+            "elevation_mean": 2958.7085,
+            "differential": []
+          },
+          {
+            "cluster_id": 1,
+            "label": "Grupo 2",
+            "priority": "Alta",
+            "suitability_mean": 52.9,
+            "area_ha": 3.85,
+            "pixel_count": 101,
+            "bsi_mean": 0.0705,
+            "msavi_mean": 0.137,
+            "ndmi_mean": 0.0005,
+            "slope_mean": 15.6922,
+            "elevation_mean": 2978.6357,
+            "differential": []
+          },
+          {
+            "cluster_id": 2,
+            "label": "Grupo 1",
+            "priority": "Muy Alta",
+            "suitability_mean": 37.1,
+            "area_ha": 1.91,
+            "pixel_count": 50,
+            "bsi_mean": -0.0196,
+            "msavi_mean": 0.21,
+            "ndmi_mean": 0.1099,
+            "slope_mean": 17.7323,
+            "elevation_mean": 2972.5513,
+            "differential": []
+          }
+        ],
+        "date_range": {
+          "start": "2025-06-01",
+          "end": "2025-07-01"
+        },
+        "study_type": "reforestacion",
+        "images_used": 14
+      },
+      "counted_requests": 2,
+      "elapsed_seconds": 5.14
+    },
+    {
+      "name": "ocean_context",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -72.10199999999999,
+              -17.151999999999997
+            ],
+            [
+              -72.098,
+              -17.151999999999997
+            ],
+            [
+              -72.098,
+              -17.148
+            ],
+            [
+              -72.10199999999999,
+              -17.148
+            ],
+            [
+              -72.10199999999999,
+              -17.151999999999997
+            ]
+          ]
+        ]
+      },
+      "study": "agro",
+      "ground_truth": false,
+      "status": "failed",
+      "error_type": "ValueError",
+      "error_message": "Píxeles válidos insuficientes tras filtrar nubes/NaN.",
+      "counted_requests": 2,
+      "elapsed_seconds": 6.02
+    },
+    {
+      "name": "misti_rock_context",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.411,
+              -16.296
+            ],
+            [
+              -71.40700000000001,
+              -16.296
+            ],
+            [
+              -71.40700000000001,
+              -16.292
+            ],
+            [
+              -71.411,
+              -16.292
+            ],
+            [
+              -71.411,
+              -16.296
+            ]
+          ]
+        ]
+      },
+      "study": "reforestacion",
+      "ground_truth": false,
+      "status": "completed",
+      "statistics": {
+        "calibrated": false,
+        "science_version": "relative-percentiles-v2",
+        "score_interpretation": "relative_exploratory",
+        "warnings": [
+          "Resultado exploratorio sin calibración de campo.",
+          "Puntuación relativa al AOI y periodo; no comparable con otras corridas.",
+          "Suelo expuesto no implica disponibilidad para reforestar; verificar pastizales nativos, uso y tenencia.",
+          "La máscara SCL puede conservar superficies urbanas y cometer errores en terreno montañoso."
+        ],
+        "scoring_reference": {
+          "version": "relative-percentiles-v2",
+          "scope": "AOI-period-relative",
+          "profiles": {
+            "BSI": {
+              "direction": "high_good",
+              "weight": 0.4,
+              "low": -0.11855824530124665,
+              "high": 0.11803349673748031
+            },
+            "MSAVI": {
+              "direction": "low_good",
+              "weight": 0.3,
+              "low": -0.014293302334845066,
+              "high": 0.010366300940513624
+            },
+            "NDMI": {
+              "direction": "high_good",
+              "weight": 0.3,
+              "low": -0.015178539622575045,
+              "high": 0.22317594826221485
+            }
+          }
+        },
+        "quality": {
+          "valid_pixels": 552,
+          "aoi_grid_pixels": 552,
+          "valid_fraction": 1.0,
+          "min_observations": 23,
+          "mean_observations": 25.400362014770508,
+          "mask": "SCL classes 4,5; finite selected bands"
+        },
+        "analysis_scale_m": 20,
+        "collections": {
+          "optical": "COPERNICUS/S2_SR_HARMONIZED",
+          "surface_model": "COPERNICUS/DEM/GLO30_2024_1"
+        },
+        "date_end_exclusive": true,
+        "area_method": "WGS84 ellipsoidal geometry area; displayed AOI/quota uses equal-area EPSG:6933",
+        "native_resolution_note": "Optical 10/20m; DSM ~30m; output grid 20m; nearest resampling.",
+        "priority_interpretation": "heuristic inspection rank, not treatment urgency",
+        "diagnostic_status": "withheld_no_field_validation",
+        "algorithm": "kmeans",
+        "n_clusters": 3,
+        "noise_pixels": 0,
+        "total_area_ha": 21.07,
+        "suitability_global_mean": 55.2,
+        "priority_distribution": {
+          "Alta": 21.07
+        },
+        "silhouette": 0.357,
+        "feature_importance": [
+          {
+            "feature": "BSI",
+            "importance": 0.322
+          },
+          {
+            "feature": "NDMI",
+            "importance": 0.238
+          },
+          {
+            "feature": "MSAVI",
+            "importance": 0.163
+          },
+          {
+            "feature": "Slope",
+            "importance": 0.15
+          },
+          {
+            "feature": "Elevation",
+            "importance": 0.127
+          }
+        ],
+        "importance_method": "centroids",
+        "indices_used": [
+          "BSI",
+          "MSAVI",
+          "NDMI",
+          "Slope",
+          "Elevation"
+        ],
+        "use_pca": false,
+        "pca": null,
+        "weights": {
+          "BSI": 0.4,
+          "MSAVI": 0.3,
+          "NDMI": 0.3
+        },
+        "clusters": [
+          {
+            "cluster_id": 1,
+            "label": "Grupo 3",
+            "priority": "Alta",
+            "suitability_mean": 58.7,
+            "area_ha": 10.15,
+            "pixel_count": 266,
+            "bsi_mean": 0.0202,
+            "msavi_mean": -0.0064,
+            "ndmi_mean": 0.1029,
+            "slope_mean": 27.2618,
+            "elevation_mean": 5727.8906,
+            "differential": []
+          },
+          {
+            "cluster_id": 2,
+            "label": "Grupo 2",
+            "priority": "Alta",
+            "suitability_mean": 54.4,
+            "area_ha": 0.73,
+            "pixel_count": 19,
+            "bsi_mean": -0.1266,
+            "msavi_mean": -0.0127,
+            "ndmi_mean": 0.2178,
+            "slope_mean": 40.8982,
+            "elevation_mean": 5718.9844,
+            "differential": []
+          },
+          {
+            "cluster_id": 0,
+            "label": "Grupo 1",
+            "priority": "Alta",
+            "suitability_mean": 51.7,
+            "area_ha": 10.19,
+            "pixel_count": 267,
+            "bsi_mean": 0.0555,
+            "msavi_mean": 0.0002,
+            "ndmi_mean": 0.0601,
+            "slope_mean": 31.5477,
+            "elevation_mean": 5620.0679,
+            "differential": []
+          }
+        ],
+        "date_range": {
+          "start": "2025-06-01",
+          "end": "2025-07-01"
+        },
+        "study_type": "reforestacion",
+        "images_used": 28
+      },
+      "counted_requests": 2,
+      "elapsed_seconds": 5.42
+    },
+    {
+      "name": "urban_context_arequipa",
+      "aoi": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.538,
+              -16.4
+            ],
+            [
+              -71.534,
+              -16.4
+            ],
+            [
+              -71.534,
+              -16.396
+            ],
+            [
+              -71.538,
+              -16.396
+            ],
+            [
+              -71.538,
+              -16.4
+            ]
+          ]
+        ]
+      },
+      "study": "agro",
+      "ground_truth": false,
+      "status": "completed",
+      "statistics": {
+        "calibrated": false,
+        "science_version": "relative-percentiles-v2",
+        "score_interpretation": "relative_exploratory",
+        "warnings": [
+          "Resultado exploratorio sin calibración de campo.",
+          "Puntuación relativa al AOI y periodo; no comparable con otras corridas.",
+          "Suelo expuesto no implica disponibilidad para reforestar; verificar pastizales nativos, uso y tenencia.",
+          "La máscara SCL puede conservar superficies urbanas y cometer errores en terreno montañoso."
+        ],
+        "scoring_reference": {
+          "version": "relative-percentiles-v2",
+          "scope": "AOI-period-relative",
+          "profiles": {
+            "NDVI": {
+              "direction": "high_good",
+              "weight": 0.3125,
+              "low": -0.005731583926826715,
+              "high": 0.3443245136737819
+            },
+            "EVI": {
+              "direction": "high_good",
+              "weight": 0.125,
+              "low": -0.004542901571840048,
+              "high": 0.1663139963150021
+            },
+            "NDRE": {
+              "direction": "high_good",
+              "weight": 0.0625,
+              "low": -0.07404707729816437,
+              "high": 0.23355263769626602
+            },
+            "MSAVI": {
+              "direction": "high_good",
+              "weight": 0.125,
+              "low": -0.0032287452928721904,
+              "high": 0.13159070372581455
+            },
+            "NDMI": {
+              "direction": "high_good",
+              "weight": 0.25,
+              "low": -0.1692785996198654,
+              "high": 0.10231543153524389
+            },
+            "BSI": {
+              "direction": "low_good",
+              "weight": 0.125,
+              "low": -0.02122515887022018,
+              "high": 0.1710854250192642
+            }
+          }
+        },
+        "quality": {
+          "valid_pixels": 529,
+          "aoi_grid_pixels": 529,
+          "valid_fraction": 1.0,
+          "min_observations": 12,
+          "mean_observations": 13.115311622619629,
+          "mask": "SCL classes 4,5; finite selected bands"
+        },
+        "analysis_scale_m": 20,
+        "collections": {
+          "optical": "COPERNICUS/S2_SR_HARMONIZED",
+          "surface_model": "COPERNICUS/DEM/GLO30_2024_1"
+        },
+        "date_end_exclusive": true,
+        "area_method": "WGS84 ellipsoidal geometry area; displayed AOI/quota uses equal-area EPSG:6933",
+        "native_resolution_note": "Optical 10/20m; DSM ~30m; output grid 20m; nearest resampling.",
+        "priority_interpretation": "heuristic inspection rank, not treatment urgency",
+        "diagnostic_status": "withheld_no_field_validation",
+        "algorithm": "kmeans",
+        "n_clusters": 3,
+        "noise_pixels": 0,
+        "total_area_ha": 20.18,
+        "suitability_global_mean": 27.4,
+        "priority_distribution": {
+          "Muy Alta": 19.46,
+          "Baja": 0.72
+        },
+        "silhouette": 0.148,
+        "feature_importance": [
+          {
+            "feature": "NDVI",
+            "importance": 0.131
+          },
+          {
+            "feature": "MSAVI",
+            "importance": 0.122
+          },
+          {
+            "feature": "EVI",
+            "importance": 0.119
+          },
+          {
+            "feature": "NDRE",
+            "importance": 0.113
+          },
+          {
+            "feature": "NDWI",
+            "importance": 0.107
+          },
+          {
+            "feature": "NBR",
+            "importance": 0.1
+          },
+          {
+            "feature": "BSI",
+            "importance": 0.091
+          },
+          {
+            "feature": "NDMI",
+            "importance": 0.091
+          },
+          {
+            "feature": "TPI",
+            "importance": 0.038
+          },
+          {
+            "feature": "Elevation",
+            "importance": 0.037
+          }
+        ],
+        "importance_method": "centroids",
+        "indices_used": [
+          "NDVI",
+          "EVI",
+          "NDRE",
+          "MSAVI",
+          "NDMI",
+          "NDWI",
+          "BSI",
+          "NBR",
+          "Slope",
+          "TPI",
+          "TRI",
+          "SolarExposure",
+          "Elevation"
+        ],
+        "use_pca": false,
+        "pca": null,
+        "weights": {
+          "NDVI": 0.3125,
+          "EVI": 0.125,
+          "NDRE": 0.0625,
+          "MSAVI": 0.125,
+          "NDMI": 0.25,
+          "BSI": 0.125
+        },
+        "clusters": [
+          {
+            "cluster_id": 1,
+            "label": "Grupo 3",
+            "priority": "Baja",
+            "suitability_mean": 92.2,
+            "area_ha": 0.72,
+            "pixel_count": 19,
+            "ndvi_mean": 0.3338,
+            "evi_mean": 0.169,
+            "ndre_mean": 0.2312,
+            "msavi_mean": 0.1376,
+            "ndmi_mean": 0.1121,
+            "ndwi_mean": -0.3618,
+            "bsi_mean": -0.0254,
+            "nbr_mean": 0.2091,
+            "slope_mean": 4.43,
+            "tpi_mean": -2.3681,
+            "tri_mean": 3.3544,
+            "solarexposure_mean": 0.2193,
+            "elevation_mean": 2340.3608,
+            "solar_mean": 0.2193,
+            "differential": []
+          },
+          {
+            "cluster_id": 2,
+            "label": "Grupo 2",
+            "priority": "Muy Alta",
+            "suitability_mean": 30.9,
+            "area_ha": 10.84,
+            "pixel_count": 284,
+            "ndvi_mean": 0.0464,
+            "evi_mean": 0.034,
+            "ndre_mean": 0.0283,
+            "msavi_mean": 0.0255,
+            "ndmi_mean": -0.0295,
+            "ndwi_mean": -0.1236,
+            "bsi_mean": 0.082,
+            "nbr_mean": -0.0042,
+            "slope_mean": 3.9462,
+            "tpi_mean": 0.8699,
+            "tri_mean": 2.9552,
+            "solarexposure_mean": 0.4979,
+            "elevation_mean": 2349.4019,
+            "solar_mean": 0.4979,
+            "differential": []
+          },
+          {
+            "cluster_id": 0,
+            "label": "Grupo 1",
+            "priority": "Muy Alta",
+            "suitability_mean": 17.6,
+            "area_ha": 8.62,
+            "pixel_count": 226,
+            "ndvi_mean": 0.0299,
+            "evi_mean": 0.0184,
+            "ndre_mean": -0.0111,
+            "msavi_mean": 0.0142,
+            "ndmi_mean": -0.0996,
+            "ndwi_mean": -0.1135,
+            "bsi_mean": 0.1246,
+            "nbr_mean": -0.0833,
+            "slope_mean": 4.1812,
+            "tpi_mean": -0.4447,
+            "tri_mean": 3.0058,
+            "solarexposure_mean": 0.421,
+            "elevation_mean": 2347.6917,
+            "solar_mean": 0.421,
+            "differential": []
+          }
+        ],
+        "date_range": {
+          "start": "2025-06-01",
+          "end": "2025-07-01"
+        },
+        "study_type": "agro",
+        "images_used": 14
+      },
+      "counted_requests": 2,
+      "elapsed_seconds": 4.98
+    }
+  ],
+  "note": "Coordinate contexts are unlabelled probes, not measured truth. No claim of agronomic accuracy."
+}

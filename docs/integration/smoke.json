@@ -1,0 +1,24 @@
+{
+  "analysis_id": "94748ea4-2c65-43e0-ab02-2d8e234528f6",
+  "status": "COMPLETED",
+  "png_bytes": 510,
+  "images_used": 13,
+  "clusters": 3,
+  "heatmap_indices": [
+    "suitability",
+    "ndvi",
+    "evi",
+    "ndre",
+    "msavi",
+    "ndmi",
+    "ndwi",
+    "bsi",
+    "nbr",
+    "slope",
+    "solarexposure"
+  ],
+  "science_version": "relative-percentiles-v2",
+  "ocean_rejected": true,
+  "quota_after_failure": 1,
+  "timestamp_utc": "2026-11-10T20:36:52.653888+00:00"
+}

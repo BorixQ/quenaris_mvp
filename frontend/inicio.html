@@ -62,7 +62,7 @@
         <h1>El campo no es uniforme. <em>Sus datos tampoco</em> deberían serlo.</h1>
         <p>Convertimos imágenes satelitales multiespectrales en decisiones por zona:
            más de 20 índices ecofisiológicos, un score de aptitud multicriterio y zonas
-           de manejo priorizadas — visualizadas sobre el relieve y resumidas por IA.</p>
+           de manejo priorizadas — visualizadas sobre el relieve y resumidas con sus límites de interpretación.</p>
         <a class="btn" href="geoanalisis.html">▸ INICIAR GEOANÁLISIS</a>
         <a class="btn ghost" href="informes.html">VER INFORMES</a>
         <div class="readouts">
@@ -142,7 +142,7 @@
           <path d="M33 13 a8 8 0 0 1 4 4" stroke="#38d9f0"/>
         </svg>
         <h3>Satélite multiespectral</h3>
-        <p>Sentinel-2 sin nubes. Más de 20 índices de vegetación, agua, <b>salinidad</b>,
+        <p>Sentinel-2 con máscara de nubes y sombras. Índices de vegetación, agua,
            suelo y topografía, con su evolución mes a mes.</p>
       </a>
       <a href="geoanalisis.html" class="card hud pad feature">
@@ -163,8 +163,8 @@
           <path d="M17 16 L22 23 M31 13 L27 22 M33 31 L28 25 M19 33 L22 26" stroke-opacity=".7"/>
         </svg>
         <h3>Inteligencia multicriterio</h3>
-        <p>Score de aptitud 0–100 y zonas por prioridad. Clasificación validada
-           (K-Means/DBSCAN/HDBSCAN) e informes ejecutivos por IA.</p>
+        <p>Puntuación relativa 0–100 y agrupaciones exploratorias
+           (K-Means/DBSCAN/HDBSCAN) e informes factuales.</p>
       </a>
     </div>
 
@@ -176,7 +176,7 @@
         <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
           <div><b>Score de aptitud</b><span>Suma ponderada de criterios → 0–100 y prioridad por zona.</span></div></div>
         <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#38d9f0" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18"/></svg>
-          <div><b>Salinidad</b><span>NDSI y SI2 para estrés iónico en climas áridos.</span></div></div>
+          <div><b>Calidad de datos</b><span>Cobertura utilizable y observaciones satelitales registradas.</span></div></div>
         <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           <div><b>Presets por estudio</b><span>Índices y algoritmo según el tipo de análisis.</span></div></div>
         <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M3 18l6-6 4 4 8-8"/></svg>
@@ -184,7 +184,7 @@
         <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#38d9f0" stroke-width="2"><path d="M4 16l8-10 8 10z"/><path d="M4 16l8 4 8-4"/></svg>
           <div><b>Vista 3D</b><span>Zonas e índices drapeados sobre el relieve real.</span></div></div>
         <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2"><path d="M6 4h9l3 3v13H6z"/><path d="M9 12h6M9 16h6"/></svg>
-          <div><b>Informes IA</b><span>Diagnóstico ejecutivo con gráficas y recomendaciones.</span></div></div>
+          <div><b>Informes factuales</b><span>Resumen exploratorio con incertidumbre y verificaciones de campo.</span></div></div>
         <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M7 10v4a3 3 0 0 0 3 3h4"/></svg>
           <div><b>Importancia de variables</b><span>XGBoost revela qué índices explican la aptitud.</span></div></div>
         <div class="cap"><svg viewBox="0 0 24 24" fill="none" stroke="#38d9f0" stroke-width="2"><path d="M12 3v18M3 12h18" stroke-opacity=".4"/><circle cx="12" cy="12" r="8"/></svg>
@@ -198,19 +198,19 @@
     <div class="domains">
       <a href="geoanalisis.html" class="card pad domain">
         <h3><span>🌱 Salud General (Agro)</span></h3>
-        <p class="hint">Análisis de viabilidad general para plantaciones considerando salinidad, topografía y calidad de suelo.</p></a>
+        <p class="hint">Exploración de diferencias espectrales y topográficas; sin diagnóstico de salud validado.</p></a>
       <a href="geoanalisis.html" class="card pad domain">
         <h3><span>💧 Estado Hídrico (Riego)</span></h3>
-        <p class="hint">Prioriza y castiga estrictamente zonas con encharcamiento prolongado o estrés hídrico severo (sequía).</p></a>
+        <p class="hint">Índices relacionados con humedad, sin diagnóstico ni prescripción de riego.</p></a>
       <a href="geoanalisis.html" class="card pad domain">
         <h3><span>🐛 Alerta Fitosanitaria</span></h3>
-        <p class="hint">Detección temprana de anomalías en senescencia y clorofila asociadas a ataques de plagas o patógenos.</p></a>
+        <p class="hint">Observaciones espectrales sin identificación validada de plagas o patógenos.</p></a>
       <a href="geoanalisis.html" class="card pad domain">
         <h3><span>🧪 Nutrición</span></h3>
-        <p class="hint">Mapa de precisión para optimizar recursos: abonado y fertilización diferencial basada en deficiencias.</p></a>
+        <p class="hint">Exploración de índices de vegetación; no determina nutrientes ni dosis de abono.</p></a>
       <a href="geoanalisis.html" class="card pad domain">
         <h3><span>🌲 Reforestación</span></h3>
-        <p class="hint">Búsqueda activa de áreas sin vegetación pero con buenas propiedades de suelo (suelo desnudo = oportunidad).</p></a>
+        <p class="hint">Exploración del terreno; requiere evaluar ecosistemas nativos, suelo, especies y usos antes de plantar.</p></a>
     </div>
 
     <!-- PRÓXIMAMENTE -->
@@ -236,5 +236,6 @@
   <script src="auth.js"></script>
   <script>requireAuth();</script>
   <script src="nav.js"></script>
+  <script src="science.js"></script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+{
+  "timestamp_utc": "2026-11-10T21:53:33.8216058Z",
+  "environment": "Local Docker integration on Windows/Ubuntu WSL",
+  "project": "quenaris-499120",
+  "app_origin": "http://localhost:8080",
+  "google_client_type": "Web application, existing client",
+  "server_client_id_matches_existing_client": true,
+  "live_google_login_completed": true,
+  "profile_loaded_authenticated_account": true,
+  "cloud_client_settings_modified": false,
+  "client_secret_created_or_copied": false,
+  "local_environment_ignored_by_git": true,
+  "stack_left_running_for_user": true
+}

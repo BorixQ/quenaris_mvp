@@ -1,0 +1,3 @@
+interface:
+  display_name: "GEE Scientific Validator"
+  short_description: "Audit spectral science and uncertainty in Quenaris"

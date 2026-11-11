@@ -1,0 +1,62 @@
+[
+  {
+    "foreground": "#172B3A",
+    "background": "#FFFFFF",
+    "ratio": 14.55,
+    "aa_normal": true,
+    "aa_large": true,
+    "aaa_normal": true,
+    "aaa_large": true,
+    "suggestion": null
+  },
+  {
+    "foreground": "#526270",
+    "background": "#F6F8FA",
+    "ratio": 5.91,
+    "aa_normal": true,
+    "aa_large": true,
+    "aaa_normal": false,
+    "aaa_large": true,
+    "suggestion": null
+  },
+  {
+    "foreground": "#FFFFFF",
+    "background": "#166534",
+    "ratio": 7.13,
+    "aa_normal": true,
+    "aa_large": true,
+    "aaa_normal": true,
+    "aaa_large": true,
+    "suggestion": null
+  },
+  {
+    "foreground": "#234B75",
+    "background": "#F3F7FC",
+    "ratio": 8.36,
+    "aa_normal": true,
+    "aa_large": true,
+    "aaa_normal": true,
+    "aaa_large": true,
+    "suggestion": null
+  },
+  {
+    "foreground": "#79500F",
+    "background": "#FFFAF0",
+    "ratio": 6.8,
+    "aa_normal": true,
+    "aa_large": true,
+    "aaa_normal": false,
+    "aaa_large": true,
+    "suggestion": null
+  },
+  {
+    "foreground": "#8C231B",
+    "background": "#FFF5F4",
+    "ratio": 8.27,
+    "aa_normal": true,
+    "aa_large": true,
+    "aaa_normal": true,
+    "aaa_large": true,
+    "suggestion": null
+  }
+]

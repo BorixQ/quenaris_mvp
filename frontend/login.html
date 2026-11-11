@@ -24,7 +24,7 @@
 </head>
 <body>
   <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   
   <div class="term card hud pad">
     <div class="head"><span class="logo">▲</span>
@@ -32,39 +32,47 @@
     </div>
     <div class="tag">› Terminal de acceso</div>
     <form id="loginForm">
-      <label class="fld">Usuario</label>
+      <label class="fld" for="username">Usuario</label>
       <input type="text" id="username" autocomplete="username" required />
-      <label class="fld">Contraseña</label>
+      <label class="fld" for="password">Contraseña</label>
       <input type="password" id="password" autocomplete="current-password" required />
       <button class="btn" type="submit">▸ AUTENTICAR</button>
       <div id="err"></div>
     </form>
-    <div class="scan">● ● ●  CANAL SEGURO</div>
+    <div class="scan">● ● ●  ACCESO A TERRANODE</div>
 
-    <!-- Contenedor del botón de Google -->
-    <div style="margin-top: 20px; display: flex; justify-content: center;">
-      <div id="g_id_onload"
-           data-client_id="371521879385-nshi2ec4ctb54plgumgqkujfgaabr2at.apps.googleusercontent.com"
-           data-context="signin"
-           data-ux_mode="popup"
-           data-callback="handleGoogleCredentialResponse"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin"
-           data-type="standard"
-           data-shape="rectangular"
-           data-theme="outline"
-           data-text="signin_with"
-           data-size="large"
-           data-logo_alignment="left">
-      </div>
-    </div>
+    <div id="googleSignIn" style="margin-top:20px;display:flex;justify-content:center;"></div>
+    <p id="googleStatus" class="hint" role="status" style="margin-top:12px;"></p>
   </div>
 
   <script src="auth.js"></script>
   <script>
     if (getToken()) location.href = "inicio.html";
 
+    const googleStatus = document.getElementById("googleStatus");
+    if (location.protocol === "file:") {
+      document.querySelector('#loginForm button').disabled = true;
+      googleStatus.textContent = "Abre Terranode desde su dirección web con el servidor iniciado. En el entorno local de pruebas: ";
+      const link = document.createElement("a");
+      link.href = "http://localhost:8080/login.html";
+      link.textContent = "http://localhost:8080/login.html";
+      googleStatus.appendChild(link);
+    } else {
+      fetch(`${API}/auth/config/`).then(jsonOrThrow).then(config => {
+        if (!config.google_client_id) {
+          googleStatus.textContent = "El acceso con Google todavía no está habilitado en este servidor.";
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.onerror = () => { googleStatus.textContent = "No se pudo cargar el acceso con Google. Revisa la conexión y los bloqueadores del navegador."; };
+        script.onload = () => {
+          google.accounts.id.initialize({client_id:config.google_client_id,callback:handleGoogleCredentialResponse,auto_select:false});
+          google.accounts.id.renderButton(document.getElementById("googleSignIn"),{theme:"outline",size:"large"});
+        };
+        document.head.appendChild(script);
+      }).catch(() => { googleStatus.textContent = "No se pudo conectar con el servidor para habilitar el acceso con Google."; });
+    }
     // Callback de Google
     async function handleGoogleCredentialResponse(response) {
       const err = document.getElementById("err");

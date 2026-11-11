@@ -1,0 +1,23 @@
+{
+  "analysis_id": "f0d16049-5733-4ed3-837c-0118e6f24dfb",
+  "status": "COMPLETED",
+  "png_bytes": 510,
+  "images_used": 13,
+  "clusters": 3,
+  "heatmap_indices": [
+    "suitability",
+    "ndvi",
+    "evi",
+    "ndre",
+    "msavi",
+    "ndmi",
+    "ndwi",
+    "bsi",
+    "nbr",
+    "slope",
+    "solarexposure"
+  ],
+  "science_version": "relative-percentiles-v2",
+  "persistence_after_recreation": true,
+  "timestamp_utc": "2026-11-10T20:36:54.649752+00:00"
+}

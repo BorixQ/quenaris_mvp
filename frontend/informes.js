@@ -7,72 +7,7 @@
 const qs = new URLSearchParams(location.search);
 let selectedId = qs.get("id");
 
-const STUDY_DESCRIPTIONS = {
-  agro: {
-    priority: "Prioridad alta indica zonas con pobre desarrollo o estrés múltiple, requiriendo intervención agronómica general.",
-    indices: {
-      suitability: "Puntuación ponderada general (0-100) que resume la viabilidad agronómica del sector.",
-      ndvi: "Mide el vigor base del cultivo. Fundamental para entender el estado de salud general.",
-      evi: "Ayuda a evaluar el vigor en zonas de alta densidad foliar sin saturarse.",
-      ndre: "Detecta problemas de clorofila antes de que el follaje se pierda visiblemente.",
-      msavi: "Optimizado para etapas tempranas donde el suelo desnudo afecta la medición.",
-      ndmi: "Mide el estrés hídrico general en la vegetación.",
-      ndwi: "Detecta exceso de humedad o encharcamientos.",
-      ndsi: "Identifica áreas con salinidad superficial que impiden el crecimiento.",
-      si2: "Complementa al NDSI en la detección de estrés salino severo.",
-      bsi: "Proporción de suelo expuesto; valores altos indican mala cobertura del cultivo.",
-      nbr: "Usado para detectar quemas o biomasa leñosa muerta.",
-      psri: "Indica envejecimiento prematuro del cultivo.",
-      slope: "Pendientes fuertes dificultan la maquinaria y el riego.",
-      aspect: "Orientación de la ladera frente al sol.",
-      tpi: "Índice de posición topográfica (crestas o valles).",
-      tri: "Rugosidad del terreno.",
-      solarexposure: "Horas de sol directas según el relieve.",
-      elevation: "Altura sobre el nivel del mar."
-    }
-  },
-  riego: {
-    priority: "Prioridad alta resalta zonas con estrés hídrico severo o encharcamiento prolongado, urgiendo ajuste en válvulas o drenajes.",
-    indices: {
-      suitability: "Puntuación de eficiencia hídrica (0-100). Valores bajos indican sequía extrema o inundación perjudicial.",
-      ndmi: "Crítico en riego: mide la falta de agua interna en la hoja antes de que la planta se seque visiblemente.",
-      ndwi: "Detecta inundaciones superficiales o zonas de mal drenaje por exceso de riego.",
-      slope: "Identifica pendientes fuertes donde el agua escurre rápido y no penetra el suelo.",
-      elevation: "Útil para predecir presión de agua en sistemas de riego por goteo o aspersión."
-    }
-  },
-  fumigacion: {
-    priority: "Prioridad alta marca focos con anomalías foliares, posibles epicentros de plagas u hongos para aplicación dirigida.",
-    indices: {
-      suitability: "Puntuación de alerta fitosanitaria. Valores bajos marcan áreas con daño foliar urgente.",
-      ndvi: "Detecta parches con pérdida repentina de follaje por herbívoros.",
-      ndre: "Sensible a la pérdida temprana de clorofila por enfermedades o estrés antes de que el NDVI baje.",
-      psri: "Indica envejecimiento prematuro (senescencia) de la hoja causado por patógenos.",
-      ndmi: "Un dosel dañado por plagas suele perder su capacidad de retener agua internamente."
-    }
-  },
-  reforestacion: {
-    priority: "Zonas Óptimas son ideales para plantar. Prioridad alta indica terrenos hostiles para el prendimiento de plantones (baja aptitud).",
-    indices: {
-      suitability: "Puntuación de viabilidad para plantar (0-100).",
-      bsi: "Fundamental para encontrar suelo expuesto y disponible para plantar.",
-      msavi: "Evalúa la escasa vegetación existente minimizando la influencia del suelo desnudo.",
-      ndsi: "Evita plantar en suelos muy salinos donde los plantones no sobrevivirán.",
-      ndwi: "Asegura que la zona tenga humedad base adecuada para la supervivencia temprana.",
-      slope: "Pendientes extremas aumentan la erosión y dificultan la plantación manual.",
-      elevation: "Condiciona qué especies de árboles pueden adaptarse al microclima."
-    }
-  },
-  fertilizacion: {
-    priority: "Prioridad alta revela parches con deficiencia nutricional (clorosis o bajo vigor) que requieren abono localizado urgente.",
-    indices: {
-      suitability: "Puntuación de suficiencia nutricional (0-100). Valores bajos piden fertilización inminente.",
-      ndvi: "Mapea las zonas de menor biomasa que necesitan estimulación con nitrógeno.",
-      ndre: "El mejor indicador de niveles bajos de Nitrógeno y clorofila en el cultivo.",
-      msavi: "Útil en etapas tempranas del cultivo para decidir la primera fertilización de fondo."
-    }
-  }
-};
+const STUDY_DESCRIPTIONS = SCIENCE_STUDY;
 
 const INDEX_META = {
   suitability:{n:"Aptitud"}, ndvi:{n:"NDVI"}, evi:{n:"EVI"}, savi:{n:"SAVI"}, ndre:{n:"NDRE"}, gndvi:{n:"GNDVI"},
@@ -80,6 +15,7 @@ const INDEX_META = {
   moisturestress:{n:"M.Stress"}, wdi:{n:"WDI"}, bsi:{n:"BSI"}, nbr:{n:"NBR"}, ndbi:{n:"NDBI"}, psri:{n:"PSRI"},
   slope:{n:"Pendiente"}, solarexposure:{n:"Solar"}
 };
+scientificMetadata(INDEX_META);
 
 init();
 
@@ -89,7 +25,7 @@ async function init() {
     const res = await fetch(`${API}/analyses/`, { headers: authHeaders() });
     list = await jsonOrThrow(res);
   } catch (e) {
-    document.getElementById("reportRoot").innerHTML = `<div class="card pad">Error: ${e.message}</div>`;
+    document.getElementById("reportRoot").innerHTML = `<div class="card pad">Error: ${escapeHTML(e.message)}</div>`;
     return;
   }
   const completed = list.filter(a => a.status === "COMPLETED");
@@ -106,7 +42,7 @@ function renderPicker(items) {
   if (!items.length) return;
   const sel = items.map(a =>
     `<option value="${a.id}" ${a.id === selectedId ? "selected" : ""}>
-       ${a.user_email ? '[' + a.user_email + '] ' : ''}${a.name ? a.name + " · " : ""}${fmtDate(a.created_at)} · ${a.area_ha} ha
+       ${a.user_email ? '[' + escapeHTML(a.user_email) + '] ' : ''}${a.name ? escapeHTML(a.name) + " · " : ""}${fmtDate(a.created_at)} · ${a.area_ha} ha
      </option>`).join("");
   document.getElementById("picker").innerHTML = `
     <label style="font-size:13px; color:var(--muted);">Análisis disponibles:</label>
@@ -121,18 +57,19 @@ async function loadReport(id) {
   try {
     const res = await fetch(`${API}/analyses/${id}/`, { headers: authHeaders() });
     a = await jsonOrThrow(res);
-  } catch (e) { root.innerHTML = `<div class="card pad">Error: ${e.message}</div>`; return; }
+  } catch (e) { root.innerHTML = `<div class="card pad">Error: ${escapeHTML(e.message)}</div>`; return; }
 
   const r = a.result || {};
   const st = r.statistics || {};
-  const reportMd = stripFence(r.report_markdown || "_El informe de IA no está disponible para este análisis._");
-  const reportHtml = window.marked ? marked.parse(reportMd) : reportMd;
+  const reportMd = stripFence(r.report_markdown || "_El informe no está disponible para este análisis._");
+  const escapeHtml = text => String(text).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const reportHtml = `<pre style="white-space:pre-wrap;font:inherit">${escapeHtml(reportMd)}</pre>`;
 
   root.innerHTML = `
     <div class="card pad" id="report">
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
         <div>
-          <h1 class="page">${a.name || "Informe Geoespacial"}</h1>
+          <h1 class="page">${escapeHTML(a.name) || "Informe Geoespacial"}</h1>
           <p class="sub">Terranode · Plataforma de análisis geoespacial multiespectral</p>
         </div>
         <div class="toolbar">
@@ -165,21 +102,22 @@ async function loadReport(id) {
       <div class="section-title">RESUMEN EJECUTIVO</div>
       ${st.calibrated === false ? `
       <div class="callout warning">
-        <h4>⚠️ Modelo Teórico (Basado en Índices)</h4>
-        <p>El modelo actual evalúa la salud vegetal utilizando firmas espectrales satelitales puras. No ha sido calibrado con datos físicos de rendimiento de su cosecha (Ground-Truth), por lo que las proyecciones se basan en óptimos teóricos de la literatura.</p>
+        <h4>⚠️ Resultado exploratorio, sin calibración</h4>
+        <p>Puntuación relativa con pesos heurísticos. No demuestra salud, viabilidad de plantación ni necesidad de intervención. Requiere observaciones de campo.</p>
       </div>` : ''}
       <div class="summary">${execSummary(st)}</div>
+      <ul class="hint">${(st.warnings || []).map(w => `<li>${escapeHtml(w)}</li>`).join("")}</ul>
       <div class="kpis" style="margin-top:16px;">
-        <div class="kpi"><div class="lbl">Aptitud media</div><div class="val">${num(st.suitability_global_mean)}<span style="font-size:14px;color:var(--muted)">/100</span></div></div>
-        <div class="kpi"><div class="lbl">Área total</div><div class="val">${num(st.total_area_ha)} ha</div></div>
-        <div class="kpi"><div class="lbl">Hectáreas prioritarias</div><div class="val">${priorityHa(st)} ha</div></div>
+        <div class="kpi"><div class="lbl">Puntuación relativa media</div><div class="val">${num(st.suitability_global_mean)}<span style="font-size:14px;color:var(--muted)">/100</span></div></div>
+        <div class="kpi"><div class="lbl">Área con datos utilizables</div><div class="val">${num(st.total_area_ha)} ha</div></div>
+        <div class="kpi"><div class="lbl">Hectáreas de menor puntuación</div><div class="val">${priorityHa(st)} ha</div></div>
         <div class="kpi"><div class="lbl">Zonas detectadas</div><div class="val">${st.n_clusters ?? "—"}</div></div>
       </div>
 
       <div class="page-break"></div>
       <div class="section-title">I. ANÁLISIS DESCRIPTIVO</div>
-      <p style="color:var(--muted); font-size:14px; margin-top:-8px; margin-bottom:16px;">Evaluación del estado actual del cultivo mediante índices crudos. Se procesaron ${r.images_used || "varias"} imágenes del satélite Sentinel-2 en el periodo. Los píxeles cubiertos por nubes fueron removidos automáticamente mediante la banda QA60 para garantizar lecturas fiables.</p>
-      
+      <p style="color:var(--muted); font-size:14px; margin-top:-8px; margin-bottom:16px;">Evaluación del estado actual del cultivo mediante índices crudos. Se procesaron ${r.images_used || "varias"} imágenes del satélite Sentinel-2 en el periodo. Se retienen píxeles terrestres clasificados por SCL (vegetación/suelo expuesto); la máscara puede cometer errores. Cobertura utilizable: ${st.quality ? (100 * st.quality.valid_fraction).toFixed(1) + "%" : "no registrada en esta corrida"}. Cuadrícula de salida: ${st.analysis_scale_m || "no registrada"} m.</p>
+
       ${r.clusters_geojson ? `
       <div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom: 24px;">
         <div style="flex:1; min-width:300px; height: 350px; border-radius: 8px; border: 1px solid var(--line); overflow:hidden; position:relative;">
@@ -196,14 +134,14 @@ async function loadReport(id) {
         <h4 style="margin-bottom:4px; font-size:14px;">Glosario Rápido</h4>
         <p style="font-size:13px; line-height:1.5; color:var(--muted);">
           <b>Aptitud (0-100):</b> ${STUDY_DESCRIPTIONS[a.study_type || "agro"]?.indices?.suitability || "Calificación numérica basada en firmas espectrales."}<br>
-          <b>Prioridad de Manejo:</b> ${STUDY_DESCRIPTIONS[a.study_type || "agro"]?.priority || "Es la clasificación en texto de la Aptitud."}
+          <b>Orden de inspección:</b> ${STUDY_DESCRIPTIONS[a.study_type || "agro"]?.priority || "Es la clasificación en texto de la Aptitud."}
         </p>
       </div>
 
       ${st.feature_importance && st.feature_importance.length > 0 ? `
       <div class="callout tip">
         <h4>💡 Transparencia del Algoritmo (Explicabilidad)</h4>
-        <p>La Inteligencia Artificial determinó que el factor más crítico para segmentar su campo hoy fue: <strong>${st.feature_importance[0].feature}</strong> (Peso de importancia: ${(st.feature_importance[0].importance * 100).toFixed(0)}%).</p>
+        <p>Mayor importancia interna según ${st.importance_method || "método no registrado"} (no causalidad ni validación): <strong>${st.feature_importance[0].feature}</strong> (Importancia relativa interna: ${(st.feature_importance[0].importance * 100).toFixed(0)}%).</p>
       </div>` : ''}
 
       <div class="card pad" style="margin-bottom: 18px; margin-top: 18px;">
@@ -235,17 +173,18 @@ async function loadReport(id) {
           <canvas id="chRadar" height="170"></canvas></div>
       </div>
 
+      <p class="hint">Serie mensual descriptiva con referencia fija del periodo (solo corridas v2); la cobertura puede variar entre meses. No demuestra una tendencia ni permite comparar otras corridas.</p>
       <div class="page-break"></div>
-      <div class="section-title">II. ANÁLISIS DIAGNÓSTICO</div>
-      <p style="color:var(--muted); font-size:14px; margin-top:-8px; margin-bottom:16px;">Zonificación inteligente, explicabilidad del algoritmo y causa raíz por zona.</p>
-      
+      <div class="section-title">II. AGRUPACIONES EXPLORATORIAS</div>
+      <p style="color:var(--muted); font-size:14px; margin-top:-8px; margin-bottom:16px;">Agrupaciones espectrales y puntuación relativa; causas no determinadas.</p>
+
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom: 16px;">
         <div class="card pad"><b style="font-size:13px;">Distribución de prioridad (ha)</b>
           <canvas id="chPrio" height="170"></canvas></div>
         <div class="card pad"><b style="font-size:13px;">Aptitud por zona</b>
           <canvas id="chSuit" height="170"></canvas></div>
       </div>
-      <h3 style="font-size: 15px; margin-top:24px; color:var(--ink);">Diagnóstico Diferencial por Zona</h3>
+      <h3 style="font-size: 15px; margin-top:24px; color:var(--ink);">Observaciones por grupo</h3>
       <div class="zone-grid">
       ${diagnosticCards(st)}
       </div>
@@ -263,12 +202,12 @@ async function loadReport(id) {
       <p style="color:var(--muted); font-size:14px; margin-top:-8px; margin-bottom:16px;">Generación automática de mapas de maquinaria para aplicación de Tasa Variable (VRT).</p>
       <div class="callout danger">
         <h4>🚨 Módulo Desactivado: Parámetros Incompletos</h4>
-        <p>El mapa de prescripción para maquinaria agrícola no se ha generado. Se requiere ingresar un Presupuesto Total de Insumos (ej. Litros de fertilizante) y los límites de aplicación por hectárea.</p>
+        <p>El mapa de prescripción para maquinaria agrícola no se ha generado. Se requiere un modelo agronómico validado con datos de campo antes de generar prescripciones. Un presupuesto no basta para establecer dosis.</p>
       </div>
 
       <div class="page-break"></div>
-      <div class="section-title">Anexo: Informe Detallado (LLM)</div>
-      <div class="md">${reportHtml}</div>
+      <div class="section-title">Anexo: Informe factual</div>
+      <div class="md">${st.science_version ? reportHtml : "Informe histórico oculto: recalcula este análisis para usar las reglas científicas actuales."}</div>
 
       <hr style="border:none; border-top:1px solid var(--line); margin:24px 0 12px;">
       <p class="hint">
@@ -282,25 +221,27 @@ async function loadReport(id) {
   if (r.clusters_geojson) renderClusterMap(r.clusters_geojson, st.clusters);
 }
 
-const LABEL_COLOR = { 
-  "Óptimo": "#34d399", 
-  "Bueno": "#7bb661", 
-  "Moderado": "#f5a524", 
+const LABEL_COLOR = {
+  "Grupo 1": "#4477aa", "Grupo 2": "#66ccee", "Grupo 3": "#228833", "Grupo 4": "#ccbb44", "Grupo 5": "#ee6677", "Sin agrupación": "#888888",
+  "Óptimo": "#34d399",
+  "Bueno": "#7bb661",
+  "Moderado": "#f5a524",
   "Marginal": "#d97736",
-  "No apto": "#b5651d" 
+  "No apto": "#b5651d"
 };
 
 function renderClusterMap(geojson, clusterStats) {
   if (!window.maplibregl) return;
-  
+
   const b = new maplibregl.LngLatBounds();
   geojson.features.forEach(f => {
-    const coords = f.geometry.type === "Polygon" ? f.geometry.coordinates[0] 
+    const coords = f.geometry.type === "Polygon" ? f.geometry.coordinates[0]
                  : f.geometry.type === "MultiPolygon" ? f.geometry.coordinates.flatMap(p => p[0]) : [];
     coords.forEach(c => b.extend(c));
   });
 
   const map = new maplibregl.Map({
+  transformRequest: privateMapRequest,
     container: 'clusterMap',
     style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
     bounds: b,
@@ -403,8 +344,8 @@ function renderCharts(st, heatmap) {
     mk("chTime", {
       type: "line",
       data: { labels: series.map(s => s.month),
-        datasets: [{ label: "Aptitud media", data: series.map(s => s.suitability_mean),
-          borderColor: "#34d399", backgroundColor: hexA("#34d399", .15), fill: true, tension: .4, pointBackgroundColor: "#34d399" }] },
+        datasets: [{ label: "Puntuación relativa media", data: series.map(s => s.suitability_mean),
+          borderColor: "#34d399", backgroundColor: hexA("#34d399", .15), fill: true, tension: 0, pointBackgroundColor: "#34d399" }] },
       options: { scales: { y: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } } },
     });
   } else {
@@ -425,18 +366,10 @@ function hexA(hex, a) {
 }
 
 function execSummary(st) {
-  if (!st.clusters) return "Resumen no disponible.";
-  const best = [...st.clusters].sort((a, b) => b.suitability_mean - a.suitability_mean)[0];
-  const worst = [...st.clusters].sort((a, b) => a.suitability_mean - b.suitability_mean)[0];
-  const sil = st.silhouette != null
-    ? ` Separación de zonas (silhouette) <b>${st.silhouette}</b>.` : "";
-  return `Se analizó el área con un motor multicriterio sobre ${(st.indices_used || []).length || "varios"}
-    índices, segmentándola en <b>${st.n_clusters}</b> zonas. La <b>aptitud media</b> global es
-    <b>${num(st.suitability_global_mean)}/100</b> sobre <b>${num(st.total_area_ha)} ha</b>.
-    La mejor zona es <b>${(best.label || "")}</b> (aptitud ${num(best.suitability_mean)},
-    prioridad ${best.priority}, ${num(best.area_ha)} ha); la más limitada es
-    <b>${(worst.label || "")}</b> (aptitud ${num(worst.suitability_mean)}, ${num(worst.area_ha)} ha),
-    candidata prioritaria a intervención.${sil} El detalle se desarrolla abajo.`;
+  return `Resultado exploratorio sobre ${num(st.total_area_ha)} ha con datos utilizables.
+    Puntuación relativa media: ${num(st.suitability_global_mean)}/100.
+    Grupos: ${st.n_clusters}. La separación espectral no identifica causas ni valida aptitud.
+    ${st.science_version ? "Referencia: " + st.science_version : "Resultado histórico: recalcular con el motor científico actual."}`;
 }
 
 const PRIO_COLOR = { "Muy Alta": "#1f7a3d", "Alta": "#7bb661", "Media": "#d9a441", "Baja": "#b5651d" };
@@ -455,30 +388,8 @@ const CAUSE_DICT = {
 };
 
 function diagnosticCards(st) {
-  if (!st.clusters) return "";
-  return st.clusters.map(c => {
-    let causeHtml = "";
-    if (c.differential && c.differential.length > 0) {
-      const p = c.differential[0];
-      const info = CAUSE_DICT[p.cause] || { icon: "⚠️", name: p.cause };
-      causeHtml = `
-        <div class="cause">
-          <span class="cause-title">${info.icon} ${info.name}</span>
-          <span class="cause-ev">Evidencia: ${(p.evidence_score * 100).toFixed(0)}%</span>
-        </div>`;
-    }
-    
-    return `
-      <div class="zone-card">
-        <h3>${c.label || "Zona"} <span style="font-weight:400; color:var(--muted)">· ${num(c.area_ha)} ha</span></h3>
-        ${causeHtml}
-        <div class="raw-vals">
-          ${(st.indices_used || []).slice(0, 3).map(idx => `<span>${INDEX_META[idx.toLowerCase()]?.n || idx}: ${num(c[idx.toLowerCase() + "_mean"])}</span>`).join("")}
-          <span style="font-weight:bold; color:var(--cyan);">Aptitud: ${num(c.suitability_mean)}</span>
-        </div>
-      </div>
-    `;
-  }).join("");
+  return (st.clusters || []).map(c => `<div class="zone-card"><h3>${c.cluster_id === -1 ? "Sin agrupación" : "Grupo " + (Number(c.cluster_id) + 1)} · ${num(c.area_ha)} ha</h3>
+    <p>Sin diagnóstico causal validado.</p><span>Puntuación relativa: ${num(c.suitability_mean)}</span></div>`).join("");
 }
 
 function downloadJSON(a) {

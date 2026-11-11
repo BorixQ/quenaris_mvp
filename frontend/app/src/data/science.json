@@ -1,0 +1,108 @@
+{
+  "indices": [
+    "NDVI",
+    "EVI",
+    "SAVI",
+    "MSAVI",
+    "NDRE",
+    "GNDVI",
+    "CIre",
+    "ARVI",
+    "SIPI",
+    "NDMI",
+    "NDWI",
+    "MSI",
+    "MoistureStress",
+    "NDSI",
+    "SI2",
+    "BSI",
+    "NBR",
+    "NDBI",
+    "PSRI",
+    "Elevation",
+    "Slope",
+    "Aspect",
+    "TPI",
+    "TRI",
+    "SolarExposure"
+  ],
+  "presets": {
+    "agro": {
+      "indices": [
+        "NDVI",
+        "EVI",
+        "NDRE",
+        "MSAVI",
+        "NDMI",
+        "NDWI",
+        "BSI",
+        "NBR",
+        "Slope",
+        "TPI",
+        "TRI",
+        "SolarExposure",
+        "Elevation"
+      ],
+      "scoring_indices": [
+        "NDVI",
+        "EVI",
+        "NDRE",
+        "MSAVI",
+        "NDMI",
+        "BSI"
+      ]
+    },
+    "reforestacion": {
+      "indices": [
+        "BSI",
+        "MSAVI",
+        "NDMI",
+        "Slope",
+        "Elevation"
+      ],
+      "scoring_indices": [
+        "MSAVI",
+        "NDMI",
+        "BSI"
+      ]
+    },
+    "riego": {
+      "indices": [
+        "NDMI",
+        "NDWI",
+        "Slope",
+        "Elevation"
+      ],
+      "scoring_indices": [
+        "NDMI",
+        "NDWI"
+      ]
+    },
+    "fumigacion": {
+      "indices": [
+        "NDVI",
+        "NDRE",
+        "PSRI",
+        "NDMI"
+      ],
+      "scoring_indices": [
+        "NDVI",
+        "NDRE",
+        "NDMI",
+        "PSRI"
+      ]
+    },
+    "fertilizacion": {
+      "indices": [
+        "NDVI",
+        "NDRE",
+        "MSAVI"
+      ],
+      "scoring_indices": [
+        "NDVI",
+        "NDRE",
+        "MSAVI"
+      ]
+    }
+  }
+}

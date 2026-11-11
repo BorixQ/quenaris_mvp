@@ -6,6 +6,7 @@
 // API y cabeceras de auth provienen de auth.js (incluido antes que este script).
 
 const map = new maplibregl.Map({
+  transformRequest: privateMapRequest,
   container: "map",
   // Imagery satelital de Esri (gratuita, sin API key). Ayuda a ubicar el AOI.
   style: {

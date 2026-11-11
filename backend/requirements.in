@@ -1,0 +1,21 @@
+# Direct runtime dependencies. Resolve on Python 3.12/Linux with hashes.
+Django>=5.2.19,<5.3
+djangorestframework>=3.16,<4
+djangorestframework-gis>=1.2,<2
+django-cors-headers>=4.7,<5
+dj-database-url>=2.3,<4
+gunicorn>=23,<25
+whitenoise>=6.9,<7
+psycopg[binary]>=3.2,<4
+celery[redis]>=5.5,<6
+redis>=5.2,<7
+earthengine-api>=1.5,<2
+geopandas>=1.0,<2
+shapely>=2.0,<3
+scikit-learn>=1.6,<2
+xgboost-cpu>=3.0,<4
+numpy>=2.2,<3
+rasterio>=1.4,<2
+matplotlib>=3.10,<4
+Pillow>=13.0,<14
+google-auth>=2.29,<3

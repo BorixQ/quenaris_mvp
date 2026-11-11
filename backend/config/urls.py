@@ -1,25 +1,15 @@
-from django.contrib import admin
 from django.urls import include, path
-from rest_framework.authtoken.views import ObtainAuthToken
-from analysis.views import OAuthLoginView, UserQuotaView
-
-
-class TokenView(ObtainAuthToken):
-    """Entrega el token a partir de usuario/contraseña en el cuerpo.
-
-    authentication_classes = [] evita que una cookie de sesión activa (p. ej.
-    estar logueado en el admin) dispare SessionAuthentication y, con ella, la
-    comprobación CSRF que rechazaría el login. Las credenciales viajan en el
-    body, así que esta vista no necesita autenticación previa.
-    """
-    authentication_classes = []
-
+from analysis.views import (TokenView, LogoutView, OAuthLoginView, UserQuotaView,
+                            HealthView, AuthConfigView, ProtectedHeatmapView)
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    # Devuelve {"token": "..."} a partir de {"username", "password"}
-    path("api/auth/token/", TokenView.as_view(), name="api-token"),
-    path("api/auth/oauth/", OAuthLoginView.as_view(), name="api-oauth"),
-    path("api/auth/quota/", UserQuotaView.as_view(), name="api-quota"),
-    path("api/", include("analysis.urls")),
+    path("api/health/",HealthView.as_view(),name="api-health"),
+    path("api/auth/config/",AuthConfigView.as_view()),
+    path("api/auth/token/",TokenView.as_view(),name="api-token"),
+    path("api/auth/logout/",LogoutView.as_view()),
+    path("api/auth/oauth/",OAuthLoginView.as_view(),name="api-oauth"),
+    path("api/auth/quota/",UserQuotaView.as_view(),name="api-quota"),
+    path("api/",include("analysis.urls")),
+    path("media/heatmaps/<uuid:analysis_id>/<uuid:artifact_attempt>/<slug:index>/<str:timestep>.png",ProtectedHeatmapView.as_view()),
+    path("media/heatmaps/<uuid:analysis_id>/<slug:index>/<str:timestep>.png",ProtectedHeatmapView.as_view()),
 ]

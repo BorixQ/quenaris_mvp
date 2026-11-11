@@ -1,0 +1,27 @@
+{
+  "analysis_id": "1f700b8c-448e-4521-b1b2-67b585f06060",
+  "status": "COMPLETED",
+  "png_bytes": 510,
+  "images_used": 13,
+  "clusters": 3,
+  "heatmap_indices": [
+    "suitability",
+    "ndvi",
+    "evi",
+    "ndre",
+    "msavi",
+    "ndmi",
+    "ndwi",
+    "bsi",
+    "nbr",
+    "slope",
+    "solarexposure"
+  ],
+  "legend_layers": 11,
+  "science_version": "relative-percentiles-v2",
+  "private_media_enforced": true,
+  "public_admin_blocked": true,
+  "ocean_rejected": true,
+  "quota_after_failure": 1,
+  "timestamp_utc": "2026-11-10T23:01:20.199503+00:00"
+}

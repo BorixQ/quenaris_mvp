@@ -1,5 +1,7 @@
 # 🚀 Despliegue en un VPS Ubuntu
 
+> **Guía histórica, no validada para publicación actual.** Usar [HOMELAB.md](HOMELAB.md) y la [guía de seguridad](docs/security/README.md) como referencia vigente. El Compose base escucha en `127.0.0.1:8080`, protege `/media/` por propietario y sirve el administrador aparte en `127.0.0.1:8001`. Cloudflare es opcional. Los comandos, requisitos de LLM y override de red de este documento histórico requieren adaptación antes de usarse; no representan un despliegue verificado.
+
 Guía paso a paso para publicar Quenaris en un servidor Ubuntu con Docker, un dominio y HTTPS automático (Caddy). Tiempo estimado: 30–45 min.
 
 ---

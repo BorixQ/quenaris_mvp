@@ -1,0 +1,12 @@
+{
+  "timestamp_utc": "2026-11-10T20:37:55.219608+00:00",
+  "environment": "local Ubuntu WSL / Linux amd64 / isolated Docker Compose",
+  "tests_passed": 32,
+  "test_summary": "32 passed",
+  "migration_drift": false,
+  "known_python_lock_advisories": 0,
+  "audit_scope": "Python runtime lock only; does not audit container OS packages",
+  "live_ee_smoke": "smoke.json",
+  "persistence_after_container_recreation": "persistence.json",
+  "homelab_modified": false
+}

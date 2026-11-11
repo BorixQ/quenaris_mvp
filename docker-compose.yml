@@ -9,7 +9,7 @@ services:
   # Base de datos espacial
   # ---------------------------------------------------------------------------
   db:
-    image: postgis/postgis:16-3.4
+    image: ${POSTGIS_IMAGE:-postgis/postgis:16-3.7@sha256:f37d93931b5af8bb67f7da00d2afef0dd951c8c49591389bde06cb6d720a7f9e}
     container_name: geoinsight_db
     restart: unless-stopped
     environment:
@@ -29,10 +29,10 @@ services:
   # Broker de mensajes y backend de resultados para Celery
   # ---------------------------------------------------------------------------
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine@sha256:7b1753b4c5ad8458906c272a8132b8c15f5557b000379eb115fb239706a384b7
     container_name: geoinsight_redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction
     volumes:
       - redisdata:/data
     healthcheck:
@@ -43,35 +43,37 @@ services:
     networks: [backend_net]
 
   # ---------------------------------------------------------------------------
-  # Servidor web Django (API REST + admin)
+  # Servidor web Django (API REST)
   # ---------------------------------------------------------------------------
   web:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: runtime
     container_name: geoinsight_web
     restart: unless-stopped
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_WORKERS:-2} --timeout 120"
     env_file: .env
     environment:
       DATABASE_URL: postgis://${POSTGRES_USER:-geoinsight}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-geoinsight}
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     volumes:
-      - ./backend:/app
-      - ./credentials:/credentials:ro
       - media_data:/app/media
-    ports:
-      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend_net]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+    networks: [backend_net, frontend_net]
 
   # ---------------------------------------------------------------------------
   # Worker Celery — pipeline geoespacial (GEE + scikit-learn)
@@ -81,55 +83,90 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: runtime
     container_name: geoinsight_worker
     restart: unless-stopped
-    command: celery -A config worker --loglevel=info --concurrency=2 --max-tasks-per-child=10
+    command: celery -A config worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-1} --max-tasks-per-child=10
     env_file: .env
     environment:
       DATABASE_URL: postgis://${POSTGRES_USER:-geoinsight}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-geoinsight}
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     volumes:
-      - ./backend:/app
       - ./credentials:/credentials:ro
       - media_data:/app/media
     depends_on:
+      web:
+        condition: service_healthy
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend_net]
+    networks: [backend_net, worker_egress]
 
   # ---------------------------------------------------------------------------
   # Frontend estático (dashboard MapLibre). En producción, sustituir por
   # Nginx + certbot o servirlo desde un CDN.
   # ---------------------------------------------------------------------------
   frontend:
-    image: nginx:alpine
+    build:
+      context: ./frontend/app
+    image: quenaris-frontend:local
     container_name: geoinsight_frontend
     restart: unless-stopped
     volumes:
-      - ./frontend:/usr/share/nginx/html:ro
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # Rásters de mapa de calor y ortomosaicos: montados FUERA del root de solo
-      # lectura (no se puede anidar un montaje dentro de un bind :ro). nginx los
-      # sirve en /media/ vía alias.
-      - media_data:/srv/media:ro
     ports:
-      - "8080:80"
-    depends_on: [web]
-    networks: [backend_net]
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      web:
+        condition: service_healthy
+    networks: [frontend_net]
 
   # ---------------------------------------------------------------------------
   # Cloudflare Tunnel (Zero Trust) para exponer localhost:8080 a quenaris.tech
   # ---------------------------------------------------------------------------
   cloudflared:
     image: cloudflare/cloudflared:latest
+    profiles: [tunnel]
     container_name: geoinsight_cloudflared
     restart: unless-stopped
     command: tunnel run
     environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:?Define CLOUDFLARE_TUNNEL_TOKEN en .env}
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks: [frontend_net]
+
+  admin:
+    build:
+      context: ./backend
+      target: runtime
+    restart: unless-stopped
+    command: sh -c "python manage.py collectstatic --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
+    env_file: .env
+    environment:
+      DJANGO_URLCONF: config.admin_urls
+      DJANGO_COOKIE_SECURE: "0"
+      DJANGO_REQUIRE_HTTPS: "0"
+      DATABASE_URL: postgis://${POSTGRES_USER:-geoinsight}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-geoinsight}
+      DJANGO_CACHE_URL: redis://redis:6379/2
+    ports: ["127.0.0.1:${ADMIN_PORT:-8001}:8000"]
+    depends_on:
+      web: {condition: service_healthy}
+    networks: [backend_net, admin_net]
+
+  beat:
+    build:
+      context: ./backend
+      target: runtime
+    restart: unless-stopped
+    command: celery -A config beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    env_file: .env
+    environment:
+      DATABASE_URL: postgis://${POSTGRES_USER:-geoinsight}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-geoinsight}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      web: {condition: service_healthy}
     networks: [backend_net]
 
 volumes:
@@ -141,4 +178,10 @@ volumes:
 
 networks:
   backend_net:
+    internal: true
+  frontend_net:
+    driver: bridge
+  worker_egress:
+    driver: bridge
+  admin_net:
     driver: bridge

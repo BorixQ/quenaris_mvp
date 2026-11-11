@@ -1,0 +1,130 @@
+# Local isolated integration environment; never use these test credentials publicly.
+name: quenaris-integration
+x-app: &app
+  build:
+    context: ./backend
+    target: runtime
+  image: quenaris-integration-app:local
+  environment: &env
+    DJANGO_SECRET_KEY: integration-only-key-not-for-production-0123456789abcdefghijklmnopqrstuvwxyz
+    DJANGO_ALLOWED_HOSTS: web,frontend,admin,localhost,127.0.0.1,testserver
+    DATABASE_URL: postgis://integration:integration-only@db:5432/integration
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/1
+    DJANGO_CACHE_URL: redis://redis:6379/2
+    GEE_PROJECT: ${GEE_PROJECT:-quenaris-499120}
+    GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+    OMP_NUM_THREADS: 1
+    OPENBLAS_NUM_THREADS: 1
+    MKL_NUM_THREADS: 1
+  volumes:
+    - integration_media:/app/media
+  depends_on:
+    db: {condition: service_healthy}
+    redis: {condition: service_healthy}
+services:
+  db:
+    image: postgis/postgis:16-3.7@sha256:f37d93931b5af8bb67f7da00d2afef0dd951c8c49591389bde06cb6d720a7f9e
+    environment:
+      POSTGRES_DB: integration
+      POSTGRES_USER: integration
+      POSTGRES_PASSWORD: integration-only
+    volumes: [integration_db_v2:/var/lib/postgresql/data]
+    networks: [backend_net]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U integration -d integration]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:7.4-alpine@sha256:7b1753b4c5ad8458906c272a8132b8c15f5557b000379eb115fb239706a384b7
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy noeviction
+    volumes: [integration_redis:/data]
+    networks: [backend_net]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  web:
+    <<: *app
+    networks: [backend_net, frontend_net]
+    command: >-
+      sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput &&
+      exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=3)"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+  worker:
+    <<: *app
+    networks: [backend_net, worker_egress]
+    command: celery -A config worker --loglevel=info --concurrency=1 --max-tasks-per-child=10
+    volumes:
+      - integration_media:/app/media
+      - type: bind
+        source: ${GEE_OAUTH_DIRECTORY:?Set path to local Earth Engine OAuth directory}
+        target: /home/app/.config/earthengine
+        read_only: true
+    depends_on:
+      web: {condition: service_healthy}
+  frontend:
+    build:
+      context: ./frontend/app
+    image: quenaris-integration-frontend:local
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports: ["127.0.0.1:${INTEGRATION_FRONTEND_PORT:-18080}:80"]
+    networks: [frontend_net]
+    depends_on:
+      web: {condition: service_healthy}
+  admin:
+    <<: *app
+    networks: [backend_net, admin_net]
+    environment:
+      <<: *env
+      DJANGO_URLCONF: config.admin_urls
+      DJANGO_COOKIE_SECURE: "0"
+      DJANGO_REQUIRE_HTTPS: "0"
+    command: sh -c "python manage.py collectstatic --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1"
+    ports: ["127.0.0.1:18081:8000"]
+    depends_on:
+      web: {condition: service_healthy}
+  beat:
+    <<: *app
+    networks: [backend_net]
+    volumes: []
+    command: celery -A config beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    depends_on:
+      web: {condition: service_healthy}
+  tests:
+    <<: *app
+    profiles: [test]
+    build:
+      context: ./backend
+      target: test
+    image: quenaris-integration-tests:local
+    working_dir: /workspace
+    networks: [backend_net, frontend_net]
+    environment:
+      <<: *env
+      DJANGO_SETTINGS_MODULE: config.settings
+      PYTHONPATH: /app
+      INTEGRATION_BASE_URL: http://frontend
+      INTEGRATION_TEST_ENV: "1"
+    volumes:
+      - .:/workspace:ro
+      - integration_media:/app/media
+    command: python -m pytest -q -o cache_dir=/tmp/pytest-cache
+volumes:
+  integration_db_v2:
+  integration_redis:
+  integration_media:
+
+networks:
+  backend_net:
+    internal: true
+  frontend_net:
+  worker_egress:
+  admin_net:

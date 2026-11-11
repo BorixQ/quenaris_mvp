@@ -23,7 +23,7 @@ const RAMP = {
 
 // Métricas por zona (coropleta vectorial).
 const METRICS = {
-  priority: { name: "Prioridad de Manejo", type: "cat", desc: "Clasificación inteligente que prioriza las zonas con menor aptitud. Zonas 'No aptas' requieren Alta Prioridad de intervención." }
+  priority: { name: "Orden de inspección", type: "cat", desc: "Orden relativo de puntuación; requiere verificación en campo." }
 };
 
 // Índices del ráster (modo detalle), agrupados.
@@ -50,6 +50,7 @@ const INDEX_META = {
   slope:{n:"Pendiente",g:"Topografía", d:"Inclinación del terreno en grados. Crítico para drenaje e insolación."}, 
   solarexposure:{n:"Solar",g:"Topografía", d:"Exposición teórica a la radiación solar considerando laderas y sombras."},
 };
+scientificMetadata(INDEX_META);
 const PIX_CMAP = {
   suitability:"RdYlGn", ndvi:"RdYlGn", evi:"RdYlGn", savi:"RdYlGn", ndre:"RdYlGn", gndvi:"RdYlGn",
   cire:"YlGn", arvi:"RdYlGn", sipi:"PuOr", lai:"YlGn", ndmi:"BrBG", ndwi:"BrBG", msi:"BrBG_r",
@@ -59,6 +60,7 @@ const PIX_CMAP = {
 const GROUPS = ["Aptitud", "Vegetación", "Agua", "Suelo", "Topografía"];
 
 const map = new maplibregl.Map({
+  transformRequest: privateMapRequest,
   container: "map", center: [-71.537, -16.409], zoom: 13, pitch: 62, bearing: -18, maxPitch: 80,
   style: {
     version: 8,
@@ -78,72 +80,7 @@ const map = new maplibregl.Map({
 
 let STATE = { mode: "zonas", layers: null, metric: "priority", index: null, time: 0, range: "", analysis: null };
 
-const STUDY_DESCRIPTIONS = {
-  agro: {
-    priority: "Prioridad alta indica zonas con pobre desarrollo o estrés múltiple, requiriendo intervención agronómica general.",
-    indices: {
-      suitability: "Puntuación ponderada general (0-100) que resume la viabilidad agronómica del sector.",
-      ndvi: "Mide el vigor base del cultivo. Fundamental para entender el estado de salud general.",
-      evi: "Ayuda a evaluar el vigor en zonas de alta densidad foliar sin saturarse.",
-      ndre: "Detecta problemas de clorofila antes de que el follaje se pierda visiblemente.",
-      msavi: "Optimizado para etapas tempranas donde el suelo desnudo afecta la medición.",
-      ndmi: "Mide el estrés hídrico general en la vegetación.",
-      ndwi: "Detecta exceso de humedad o encharcamientos.",
-      ndsi: "Identifica áreas con salinidad superficial que impiden el crecimiento.",
-      si2: "Complementa al NDSI en la detección de estrés salino severo.",
-      bsi: "Proporción de suelo expuesto; valores altos indican mala cobertura del cultivo.",
-      nbr: "Usado para detectar quemas o biomasa leñosa muerta.",
-      psri: "Indica envejecimiento prematuro del cultivo.",
-      slope: "Pendientes fuertes dificultan la maquinaria y el riego.",
-      aspect: "Orientación de la ladera frente al sol.",
-      tpi: "Índice de posición topográfica (crestas o valles).",
-      tri: "Rugosidad del terreno.",
-      solarexposure: "Horas de sol directas según el relieve.",
-      elevation: "Altura sobre el nivel del mar."
-    }
-  },
-  riego: {
-    priority: "Prioridad alta resalta zonas con estrés hídrico severo o encharcamiento prolongado, urgiendo ajuste en válvulas o drenajes.",
-    indices: {
-      suitability: "Puntuación de eficiencia hídrica (0-100). Valores bajos indican sequía extrema o inundación perjudicial.",
-      ndmi: "Crítico en riego: mide la falta de agua interna en la hoja antes de que la planta se seque visiblemente.",
-      ndwi: "Detecta inundaciones superficiales o zonas de mal drenaje por exceso de riego.",
-      slope: "Identifica pendientes fuertes donde el agua escurre rápido y no penetra el suelo.",
-      elevation: "Útil para predecir presión de agua en sistemas de riego por goteo o aspersión."
-    }
-  },
-  fumigacion: {
-    priority: "Prioridad alta marca focos con anomalías foliares, posibles epicentros de plagas u hongos para aplicación dirigida.",
-    indices: {
-      suitability: "Puntuación de alerta fitosanitaria. Valores bajos marcan áreas con daño foliar urgente.",
-      ndvi: "Detecta parches con pérdida repentina de follaje por herbívoros.",
-      ndre: "Sensible a la pérdida temprana de clorofila por enfermedades o estrés antes de que el NDVI baje.",
-      psri: "Indica envejecimiento prematuro (senescencia) de la hoja causado por patógenos.",
-      ndmi: "Un dosel dañado por plagas suele perder su capacidad de retener agua internamente."
-    }
-  },
-  reforestacion: {
-    priority: "Zonas Óptimas son ideales para plantar. Prioridad alta indica terrenos hostiles para el prendimiento de plantones (baja aptitud).",
-    indices: {
-      suitability: "Puntuación de viabilidad para plantar (0-100).",
-      bsi: "Fundamental para encontrar suelo expuesto y disponible para plantar.",
-      msavi: "Evalúa la escasa vegetación existente minimizando la influencia del suelo desnudo.",
-      ndsi: "Evita plantar en suelos muy salinos donde los plantones no sobrevivirán.",
-      ndwi: "Asegura que la zona tenga humedad base adecuada para la supervivencia temprana.",
-      slope: "Pendientes extremas aumentan la erosión y dificultan la plantación manual.",
-      elevation: "Condiciona qué especies de árboles pueden adaptarse al microclima."
-    }
-  },
-  fertilizacion: {
-    priority: "Prioridad alta revela parches con deficiencia nutricional (clorosis o bajo vigor) que requieren abono localizado urgente.",
-    indices: {
-      suitability: "Puntuación de suficiencia nutricional (0-100). Valores bajos piden fertilización inminente.",
-      ndvi: "Mapea las zonas de menor biomasa que necesitan estimulación con nitrógeno.",
-      ndre: "El mejor indicador de niveles bajos de Nitrógeno y clorofila en el cultivo.",
-      msavi: "Útil en etapas tempranas del cultivo para decidir la primera fertilización de fondo."
-    }
-  }
-};
+const STUDY_DESCRIPTIONS = SCIENCE_STUDY;
 
 const fmtDate = (iso) => { const d=new Date(iso); return isNaN(d)?iso:d.toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"2-digit"}); };
 
@@ -162,7 +99,7 @@ map.on("load", async () => {
       sel.disabled = true;
     } else {
       sel.innerHTML = done.map(a => 
-        `<option value="${a.id}">${a.user_email ? '[' + a.user_email + '] ' : ''}${a.name ? a.name + " · " : ""}${fmtDate(a.created_at)} · ${a.area_ha} ha</option>`
+        `<option value="${a.id}">${a.user_email ? '[' + escapeHTML(a.user_email) + '] ' : ''}${a.name ? escapeHTML(a.name) + " · " : ""}${fmtDate(a.created_at)} · ${a.area_ha} ha</option>`
       ).join("");
       sel.onchange = (e) => { 
         analysisId = e.target.value; 
@@ -295,7 +232,7 @@ function updateDescription() {
   
   if (STATE.mode === "zonas") {
     let desc = dict.priority;
-    note.innerHTML = `<span style="color:var(--cyan);font-weight:bold;">Prioridad de Manejo:</span> ${desc}<br><br>
+    note.innerHTML = `<span style="color:var(--cyan);font-weight:bold;">Orden de inspección:</span> ${desc}<br><br>
                       ⓘ <b>Vectorial</b>: Resume la mediana del periodo y se adhiere al relieve sin distorsión (drapeado perfecto).`;
   } else {
     if (!STATE.layers) {
@@ -370,7 +307,7 @@ function drawHeat() {
 function legend() {
   const el = document.getElementById("legend");
   if (STATE.mode === "zonas" && STATE.metric === "priority") {
-    el.innerHTML = `<div class="lt">Prioridad de zonas</div>` + Object.entries(PRIO_COLOR).map(([k, c]) =>
+    el.innerHTML = `<div class="lt">Orden de inspección</div>` + Object.entries(PRIO_COLOR).map(([k, c]) =>
       `<div class="row"><span class="sw" style="background:${c}"></span>${k}</div>`).join("");
     return;
   }

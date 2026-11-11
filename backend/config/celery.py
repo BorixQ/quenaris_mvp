@@ -16,3 +16,12 @@ app.conf.update(
     task_soft_time_limit=60 * 25,
     result_expires=60 * 60 * 24,
 )
+
+
+app.conf.beat_schedule = {
+    "recover-stale-analyses": {
+        "task": "analysis.tasks.recover_stale_requests",
+        "schedule": 300.0,
+        "options": {"expires": 240},
+    }
+}

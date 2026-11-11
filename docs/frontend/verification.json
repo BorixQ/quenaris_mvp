@@ -1,0 +1,89 @@
+{
+  "timestamp_utc": "2026-11-10T23:25:30.223105+00:00",
+  "environment": "Windows, Ubuntu WSL, isolated quenaris-integration project",
+  "backend_tests": {
+    "passed": 62,
+    "seconds": 19.0
+  },
+  "frontend_unit_tests": {
+    "passed": 16,
+    "command": "npm test",
+    "seconds": 6.16
+  },
+  "viewports_checked": [
+    360,
+    768,
+    1440
+  ],
+  "google_live_login_in_new_spa": true,
+  "private_admin_and_real_xss_image_logout_smoke_passed": true,
+  "live_ee_analysis_id": "1f700b8c-448e-4521-b1b2-67b585f06060",
+  "legends_count": 11,
+  "django_check_issues": 0,
+  "model_migrations_pending": false,
+  "node_in_runtime": false,
+  "images": {
+    "quenaris-integration-frontend:local": {
+      "id": "sha256:96444628e099982937d5eda29a10f0a4ed1d907e7a13254fc4142a0b2c265556",
+      "size_bytes": 96081143
+    },
+    "quenaris-frontend-legacy:20261110": {
+      "id": "sha256:f02e02e119f5040fef940b36d6b1c92e55e71dfffcebf35281e780fac47c51fe",
+      "size_bytes": 92718973
+    }
+  },
+  "ports": {
+    "frontend": {
+      "80/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "8080"
+        }
+      ]
+    },
+    "admin": {
+      "8000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "18081"
+        }
+      ]
+    },
+    "web": {
+      "8000/tcp": null
+    },
+    "db": {
+      "5432/tcp": null
+    },
+    "redis": {
+      "6379/tcp": null
+    }
+  },
+  "homelab_modified": false,
+  "github_modified": false,
+  "scientific_formula_or_weight_changes": false,
+  "field_calibration_measured": false,
+  "usability_with_agronomists_conducted": false,
+  "stack_left_running": true,
+  "e2e": {
+    "startTime": "2026-11-10T23:24:27.078Z",
+    "duration": 41567.514,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "command": "npm run test:e2e",
+    "browser": "Microsoft Edge 157.0.4341.42, headless",
+    "axe_violations_in_reviewed_screens": 0,
+    "screens_audited": [
+      "login",
+      "wizard",
+      "history at 360/768/1440px",
+      "report at 360/768/1440px",
+      "map with legend"
+    ],
+    "keyboard_skip_link_and_discard_dialog_checked": true,
+    "print_hides_navigation_and_pdf_generated": true,
+    "synthetic_login_ip_counters_reset_in_isolated_cache": true
+  }
+}

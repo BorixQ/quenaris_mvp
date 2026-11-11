@@ -36,9 +36,8 @@ PRESETS = {
         "indices": [
             "NDVI", "EVI", "NDRE", "MSAVI",
             "NDMI", "NDWI",
-            "NDSI", "SI2",
-            "BSI", "NBR", "PSRI",
-            "Slope", "Aspect", "TPI", "TRI", "SolarExposure", "Elevation"
+            "BSI", "NBR",
+            "Slope", "TPI", "TRI", "SolarExposure", "Elevation"
         ],
         "weights": None, # Usa los pesos por defecto de scoring.py
         "profile_overrides": {}
@@ -54,13 +53,12 @@ PRESETS = {
         "profile_overrides": {"PSRI": {"direction": "low_good"}} # PSRI bajo es sano
     },
     "reforestacion": {
-        "indices": ["BSI", "MSAVI", "NDSI", "NDWI", "Slope", "Elevation"],
-        "weights": {"BSI": 0.4, "MSAVI": 0.3, "NDSI": 0.2, "NDWI": 0.1, "Slope": 0.0, "Elevation": 0.0},
+        "indices": ["BSI", "MSAVI", "NDMI", "Slope", "Elevation"],
+        "weights": {"BSI": 0.4, "MSAVI": 0.3, "NDMI": 0.3},
         "profile_overrides": {
             "BSI": {"direction": "high_good"},   # Suelo desnudo = oportunidad
             "MSAVI": {"direction": "low_good"},  # Poca vegetación actual = bueno
-            "NDSI": {"direction": "low_good"},
-            "NDWI": {"direction": "low_good"}
+            "NDMI": {"direction": "high_good"}
         }
     },
     "fertilizacion": {
@@ -74,14 +72,20 @@ PRESETS = {
 }
 
 DEFAULT_STUDY = "agro"
+# Legacy formulas without a verified biophysical interpretation are not selectable.
+UNVERIFIED = {"LAI", "WDI"}
 
 
 def resolve_indices(study_type: str | None, override: list[str] | None) -> list[str]:
     """Devuelve la lista de índices a computar: override del usuario o el preset."""
-    if override:
-        sel = [i for i in override if i in REGISTRY]
-        if sel:
-            return sel
+    if study_type and study_type not in PRESETS:
+        raise ValueError("Tipo de estudio desconocido.")
+    if override is not None:
+        if not isinstance(override, list) or not override or any(
+            not isinstance(i, str) or i not in REGISTRY or i in UNVERIFIED for i in override
+        ):
+            raise ValueError("Selección de índices vacía, desconocida o sin fórmula verificada (LAI/WDI).")
+        return list(dict.fromkeys(override))
             
     preset = PRESETS.get(study_type or DEFAULT_STUDY, PRESETS["agro"])
     
@@ -91,55 +95,48 @@ def resolve_indices(study_type: str | None, override: list[str] | None) -> list[
     return preset.get("indices", [])
 
 
+# Expressions use unitless reflectance, including homogeneous ratios.
+# Each denominator is masked near zero instead of treating undefined ratios as 0.
+FORMULAS = {
+    "NDVI": ("(N-R)/(N+R)", "N+R"),
+    "EVI": ("2.5*(N-R)/(N+6*R-7.5*B+1)", "N+6*R-7.5*B+1"),
+    "SAVI": ("1.5*(N-R)/(N+R+0.5)", "N+R+0.5"),
+    "MSAVI": ("(2*N+1-sqrt((2*N+1)*(2*N+1)-8*(N-R)))/2", "2"),
+    "NDRE": ("(N-RE1)/(N+RE1)", "N+RE1"),
+    "GNDVI": ("(N-G)/(N+G)", "N+G"),
+    "CIre": ("N/RE1-1", "RE1"),
+    "ARVI": ("(N-(2*R-B))/(N+(2*R-B))", "N+(2*R-B)"),
+    "SIPI": ("(N-B)/(N-R)", "N-R"),
+    "NDMI": ("(N-S1)/(N+S1)", "N+S1"),
+    "NDWI": ("(G-N)/(G+N)", "G+N"),
+    "MSI": ("S1/N", "N"),
+    "MoistureStress": ("(S1-N)/(S1+N)", "S1+N"),
+    "NDSI": ("(S1-S2)/(S1+S2)", "S1+S2"),
+    "SI2": ("sqrt(N*N+G*G+R*R)", "1"),
+    "BSI": ("((S1+R)-(N+B))/((S1+R)+(N+B))", "S1+R+N+B"),
+    "NBR": ("(N-S2)/(N+S2)", "N+S2"),
+    "NDBI": ("(S1-N)/(S1+N)", "S1+N"),
+    # Sentinel-2 approximation to R678/R500/R750, not a disease diagnosis.
+    "PSRI": ("(R-B)/RE2", "RE2"),
+}
+
+
 def spectral_indices(img: ee.Image) -> ee.Image:
-    """Calcula los índices espectrales sobre un composite Sentinel-2."""
-    B2, B3, B4 = img.select("B2"), img.select("B3"), img.select("B4")
-    B5, B8 = img.select("B5"), img.select("B8")
-    B11, B12 = img.select("B11"), img.select("B12")
-    # Reflectancia 0-1 para fórmulas que lo requieren
-    NIR, RED, GRE, BLU = B8.divide(10000), B4.divide(10000), B3.divide(10000), B2.divide(10000)
-
-    ndvi = img.normalizedDifference(["B8", "B4"]).rename("NDVI")
-    evi = img.expression("2.5*((NIR-RED)/(NIR+6*RED-7.5*BLUE+1))",
-                         {"NIR": NIR, "RED": RED, "BLUE": BLU}).rename("EVI")
-    savi = img.expression("1.5*((NIR-RED)/(NIR+RED+0.5))", {"NIR": NIR, "RED": RED}).rename("SAVI")
-    # MSAVI: sin factor L manual (sustituye al SAVI en el preset agro)
-    msavi = img.expression(
-        "(2*NIR + 1 - sqrt((2*NIR+1)*(2*NIR+1) - 8*(NIR-RED)))/2",
-        {"NIR": NIR, "RED": RED}).rename("MSAVI")
-    ndre = img.normalizedDifference(["B8", "B5"]).rename("NDRE")
-    gndvi = img.normalizedDifference(["B8", "B3"]).rename("GNDVI")
-    cire = img.expression("(NIR/RE1)-1", {"NIR": B8, "RE1": B5}).rename("CIre")
-    arvi = img.expression("(NIR-(2*RED-BLUE))/(NIR+(2*RED-BLUE))",
-                          {"NIR": B8, "RED": B4, "BLUE": B2}).rename("ARVI")
-    sipi = img.expression("(NIR-BLUE)/(NIR-RED)", {"NIR": B8, "BLUE": B2, "RED": B4}).rename("SIPI")
-    lai = img.expression("3.618*((NIR-RED)/(NIR+RED+0.5))", {"NIR": NIR, "RED": RED}).rename("LAI")
-
-    ndmi = img.normalizedDifference(["B8", "B11"]).rename("NDMI")
-    ndwi = img.normalizedDifference(["B3", "B8"]).rename("NDWI")
-    msi = img.expression("SWIR1/NIR", {"SWIR1": B11, "NIR": B8}).rename("MSI")
-    mstress = img.normalizedDifference(["B11", "B8"]).rename("MoistureStress")
-    wdi = img.expression("(RED+GREEN)/(NIR+SWIR1)",
-                         {"RED": B4, "GREEN": B3, "NIR": B8, "SWIR1": B11}).rename("WDI")
-
-    # Salinidad
-    ndsi = img.normalizedDifference(["B11", "B12"]).rename("NDSI")  # (SWIR1-SWIR2)/(SWIR1+SWIR2)
-    si2 = img.expression("sqrt(NIR*NIR + GREEN*GREEN + RED*RED)",
-                         {"NIR": NIR, "GREEN": GRE, "RED": RED}).rename("SI2")
-
-    bsi = img.expression("((SWIR1+RED)-(NIR+BLUE))/((SWIR1+RED)+(NIR+BLUE))",
-                         {"SWIR1": B11, "RED": B4, "NIR": B8, "BLUE": B2}).rename("BSI")
-    nbr = img.normalizedDifference(["B8", "B12"]).rename("NBR")
-    ndbi = img.normalizedDifference(["B11", "B8"]).rename("NDBI")
-    psri = img.expression("(RED-BLUE)/RE1", {"RED": B4, "BLUE": B2, "RE1": B5}).rename("PSRI")
-
-    return img.addBands([ndvi, evi, savi, msavi, ndre, gndvi, cire, arvi, sipi, lai,
-                         ndmi, ndwi, msi, mstress, wdi, ndsi, si2, bsi, nbr, ndbi, psri])
+    bands = {n: img.select(b).divide(10000) for n, b in {
+        "B": "B2", "G": "B3", "R": "B4", "RE1": "B5", "RE2": "B6",
+        "N": "B8", "S1": "B11", "S2": "B12"}.items()}
+    indices = []
+    for name, (formula, denominator) in FORMULAS.items():
+        valid = img.expression(denominator, bands).abs().gt(1e-6)
+        indices.append(img.expression(formula, bands).updateMask(valid).rename(name))
+    return img.addBands(indices)
 
 
 def topography(aoi: ee.Geometry) -> ee.Image:
     """Elevación, pendiente, orientación, exposición solar, TPI y TRI."""
-    dem = ee.ImageCollection("COPERNICUS/DEM/GLO30").select("DEM").mosaic()
+    tiles = ee.ImageCollection("COPERNICUS/DEM/GLO30_2024_1").filterBounds(aoi.buffer(1000)).select("DEM")
+    # A mosaic loses the source projection; terrain/neighborhood derivatives need it.
+    dem = tiles.mosaic().setDefaultProjection(tiles.first().select("DEM").projection())
     elev = dem.rename("Elevation")
     slope = ee.Terrain.slope(dem).rename("Slope")
     aspect = ee.Terrain.aspect(dem)

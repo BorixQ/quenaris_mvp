@@ -1,0 +1,89 @@
+{
+  "timestamp_utc": "2026-11-10T19:49:03.598682+00:00",
+  "status": "completed",
+  "case": "highland_context_chiguata",
+  "counted_requests": {
+    "compute_value": 1,
+    "download": 1
+  },
+  "elapsed_seconds": 6.55,
+  "layers": {
+    "bounds": [
+      -71.39216990094438,
+      -16.41204057780683,
+      -71.3878579875806,
+      -16.407908327499882
+    ],
+    "indices": [
+      "suitability",
+      "msavi",
+      "ndmi",
+      "bsi",
+      "slope"
+    ],
+    "timesteps": [
+      "2025-06"
+    ],
+    "url_template": "/media/heatmaps/science-validation/{index}/{timestep}.png",
+    "ranges": {
+      "suitability": {
+        "vmin": 0,
+        "vmax": 100
+      },
+      "msavi": {
+        "vmin": -0.2,
+        "vmax": 0.8
+      },
+      "ndmi": {
+        "vmin": -0.3,
+        "vmax": 0.5
+      },
+      "bsi": {
+        "vmin": -0.5,
+        "vmax": 0.5
+      },
+      "slope": {
+        "vmin": 0,
+        "vmax": 45
+      }
+    },
+    "suitability_series": [
+      {
+        "month": "2025-06",
+        "suitability_mean": 56.8,
+        "valid_pixels": 552,
+        "valid_fraction": 1.0,
+        "images_used": 14,
+        "start": "2025-06-01",
+        "end_exclusive": "2025-07-01"
+      }
+    ],
+    "scoring_reference": {
+      "version": "relative-percentiles-v2",
+      "scope": "AOI-period-relative",
+      "profiles": {
+        "BSI": {
+          "direction": "high_good",
+          "weight": 0.4,
+          "low": -0.03800499528646469,
+          "high": 0.15149514228105546
+        },
+        "MSAVI": {
+          "direction": "low_good",
+          "weight": 0.3,
+          "low": 0.06303703784942627,
+          "high": 0.2333368438482285
+        },
+        "NDMI": {
+          "direction": "high_good",
+          "weight": 0.3,
+          "low": -0.10590540558099747,
+          "high": 0.13875784769654304
+        }
+      }
+    },
+    "scale_m": 20,
+    "skipped_months": [],
+    "temporal_interpretation": "Fixed period reference; monthly differences are descriptive, not a trend or causal change."
+  }
+}

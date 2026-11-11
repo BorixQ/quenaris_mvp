@@ -1,56 +1,27 @@
-"""
-Generación del informe ejecutivo con un LLM.
-
-El JSON estadístico del pipeline se inyecta en un system prompt que dota al
-modelo de contexto ecológico real: muchas especies de interés (p. ej. árboles
-de crecimiento lento que tardan 20-40 años en madurar) muestran cambios sutiles
-inter-anuales en NDVI/EVI. El informe debe interpretar señales débiles sin
-sobre-interpretar el ruido, y distinguir variación estacional de tendencia real.
-"""
+"""Factual reporting for uncalibrated satellite observations."""
 import json
 import re
 
-from django.conf import settings
-from openai import OpenAI
 
-SYSTEM_PROMPT = """\
-Eres un ingeniero agrónomo/forestal y analista de teledetección senior de Terranode.
-Redactas informes ejecutivos a partir de estadísticas derivadas de Sentinel-2 con un
-motor de análisis multicriterio por píxel.
-
-CÓMO LEER LAS ESTADÍSTICAS QUE RECIBES:
-- Se calculan ~18 índices ecofisiológicos y topográficos (vegetación: NDVI, EVI, SAVI,
-  NDRE, LAI...; agua: NDMI, NDWI, MoistureStress, WDI; suelo: BSI, NBR, PSRI;
-  topografía: pendiente, exposición solar).
-- Esos índices se combinan en un SuitabilityScore (0–100) por píxel, suma ponderada de
-  cinco criterios: vigor vegetal 30%, disponibilidad hídrica 25%, condiciones de suelo
-  20%, topografía 15% y bajo estrés 10% ("weights"). A mayor score, mejores condiciones
-  ecofisiológicas del terreno.
-- El score se clasifica en prioridad: Muy Alta (≥75), Alta (≥50), Media (≥25), Baja.
-  "priority_distribution" da hectáreas por nivel.
-- El terreno se segmenta por clustering; cada zona ("clusters") trae suitability_mean,
-  priority, área y medias de índices. "silhouette" indica la calidad de la separación
-  (cercano a 1 = zonas bien diferenciadas; cercano a 0 = difusas; coméntalo).
-- "feature_importance" indica qué índices más separan las zonas.
-
-CONTEXTO ECOLÓGICO CLAVE — incorpóralo:
-- Muchas especies objetivo son de CRECIMIENTO LENTO (20–40 años a madurez). El impacto
-  a corto plazo es sutil pero crucial; una variación pequeña de NDVI/score puede ser
-  señal temprana real, no ruido. Señálalo con cautela calibrada.
-- Distingue variación estacional de tendencia estructural; un composite no prueba
-  tendencia (recomienda series multianuales).
-- Score/NDVI alto no siempre es "mejor": puede ser vegetación herbácea o invasora.
-
-ESTRUCTURA DEL INFORME (markdown, en español):
-1. Resumen ejecutivo (3-4 frases para dirección, citando aptitud media y prioridades).
-2. Diagnóstico por zonas (tabla: zona, prioridad, aptitud, área, lectura interpretativa).
-3. Distribución de prioridades y qué hectáreas accionar primero.
-4. Drivers del resultado (lee feature_importance) y señales de crecimiento lento (20-40 años).
-5. Calidad del análisis (silhouette, nubosidad, un composite, resolución) y limitaciones.
-6. Recomendaciones accionables priorizadas y plan de monitoreo.
-
-Reglas: básate SOLO en las cifras provistas; no inventes datos. Si algo es incierto,
-dilo. Tono profesional y claro.
+SYSTEM_PROMPT = """Eres un redactor técnico de observaciones satelitales exploratorias.
+Usa exclusivamente el JSON recibido. No inventes especies, cultivos, fenología,
+métricas, causas de estrés, probabilidades ni tratamientos. El análisis NO está
+calibrado con campo. No diagnostiques salinidad, plagas, carencias, supervivencia
+de plantones ni necesidad de riego o fertilización a partir de estos índices.
+La puntuación 0-100 es relativa a percentiles del AOI y periodo, con pesos
+heurísticos en weights/scoring_reference; no equivale a salud o aptitud absoluta.
+priority es solo un orden heurístico para inspección: puntuación <40 Muy Alta,
+<60 Alta, <80 Media, resto Baja. No expresa urgencia de tratamiento.
+Respeta warnings y quality: cobertura baja implica evidencia limitada. Imágenes
+por escena no equivalen a observaciones válidas por píxel. Una mediana temporal
+no demuestra cambios. Silhouette evalúa separación geométrica, no precisión.
+XGBoost aproxima una puntuación definida por reglas: no valida causalidad.
+Suelo desnudo no implica oportunidad de reforestar; puede ser roca, ciudad,
+pastizal nativo o suelo bajo otro uso. No traslades hipótesis agrícolas a puna.
+Estructura en español: observaciones y procedencia; tabla de grupos y puntuación
+relativa; calidad/cobertura; limitaciones; verificaciones de campo recomendadas.
+Si falta evidencia, indica que no puede concluirse. Omite toda recomendación
+de intervención. No muestres porcentajes de certeza ni diagnósticos antiguos.
 """
 
 USER_TEMPLATE = """\
@@ -65,23 +36,40 @@ Redacta el informe ejecutivo siguiendo la estructura indicada.
 
 
 def generate_report(statistics: dict) -> str:
-    """Devuelve el informe en markdown. Lanza excepción si la API falla.
+    """Deterministic factual report while no independent calibration exists.
 
-    Usa el SDK de OpenAI apuntando a LLM_BASE_URL, por lo que funciona con
-    DeepSeek (https://api.deepseek.com), OpenAI o cualquier endpoint compatible.
+    The legacy prompt remains as a documented constraint for future reviewed
+    generation. This release makes no provider call, regardless of API key.
     """
-    client = OpenAI(api_key=settings.LLM_API_KEY, base_url=settings.LLM_BASE_URL)
-    stats_json = json.dumps(statistics, indent=2, ensure_ascii=False)
-
-    completion = client.chat.completions.create(
-        model=settings.LLM_MODEL,
-        max_tokens=8000,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": USER_TEMPLATE.format(stats_json=stats_json)},
-        ],
-    )
-    return _strip_fence(completion.choices[0].message.content or "")
+    quality = statistics.get("quality", {})
+    coverage = quality.get("valid_fraction")
+    coverage_text = f"{100*coverage:.1f}%" if coverage is not None else "no registrada"
+    lines = ["## Observaciones satelitales exploratorias",
+             "Sin calibración de campo. No se emiten diagnósticos causales ni prescripciones.",
+             f"Versión: {statistics.get('science_version', 'histórica/no registrada')}.",
+             f"Área con datos utilizables: {statistics.get('total_area_ha', 'no registrada')} ha. "
+             f"Puntuación relativa media: {statistics.get('suitability_global_mean', 'no registrada')}/100.",
+             f"Cobertura utilizable de la cuadrícula del AOI: {coverage_text}. "
+             f"Escenas: {statistics.get('images_used', 'no registradas')}. "
+             f"Cuadrícula de salida: {statistics.get('analysis_scale_m', 'no registrada')} m.",
+             "La cobertura incluye filtros de superficie y calidad; no representa porcentaje de nubes.",
+             "## Grupos espectrales", "| Grupo | Puntuación relativa | Área ha |", "|---|---:|---:|"]
+    for group in statistics.get("clusters", []):
+        name = "Sin agrupación" if group["cluster_id"] == -1 else f"Grupo {group['cluster_id']+1}"
+        lines.append(f"| {name} | {group['suitability_mean']} | {group['area_ha']} |")
+    lines += ["## Interpretación y límites",
+              "Los percentiles se ajustan al AOI y periodo. La escala no mide salud absoluta ni aptitud ecológica. "
+              "No compare puntuaciones de corridas con referencias distintas.",
+              "Los meses usan una referencia fija, pero cambios de cobertura y estación pueden alterar su media. "
+              "Una diferencia mensual no prueba una tendencia ni una causa.",
+              "Pesos efectivos (heurísticos): " + json.dumps(statistics.get("weights", {}), ensure_ascii=False),
+              "Silhouette: " + str(statistics.get("silhouette")) + "; separación geométrica, no exactitud agronómica."]
+    lines += ["- " + warning for warning in statistics.get("warnings", [])]
+    lines += ["## Verificación en campo",
+              "Registrar cobertura, fenología, suelo y condiciones de observación con fecha y ubicación. "
+              "Para restauración, revisar ecosistema de referencia, pastizales nativos, especies, usos y tenencia. "
+              "No determinar riego, fumigación, fertilización o plantación solo con estos resultados."]
+    return "\n\n".join(lines)
 
 
 def _strip_fence(text: str) -> str:

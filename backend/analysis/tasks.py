@@ -1,6 +1,6 @@
 """
 Tarea Celery — recibe el ID de la petición, ejecuta el pipeline GEE,
-genera el informe LLM y persiste el resultado. El frontend hace polling
+genera el informe factual y persiste el resultado. El frontend hace polling
 sobre /api/analyses/<id>/ hasta ver status=COMPLETED.
 """
 import json
@@ -11,26 +11,25 @@ from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.utils import timezone
 
 from django.conf import settings
+from django.db import transaction
 
 from .gee_pipeline import run_pipeline
 from .heatmap import generate_heatmaps
 from .llm_report import generate_report
 from .models import AnalysisRequest, AnalysisResult
+from .lifecycle import mark_failed, claim_attempt
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task(
     bind=True,
-    autoretry_for=(ConnectionError, TimeoutError),
-    retry_backoff=30,
     max_retries=2,
 )
 def run_geospatial_analysis(self, analysis_id: str) -> str:
-    analysis = AnalysisRequest.objects.get(id=analysis_id)
-    analysis.status = AnalysisRequest.Status.PROCESSING
-    analysis.started_at = timezone.now()
-    analysis.save(update_fields=["status", "started_at"])
+    analysis, attempt = claim_attempt(analysis_id)
+    if analysis is None:
+        return "IGNORED"
 
     try:
         # 1-4. Pipeline GEE + clustering
@@ -46,11 +45,11 @@ def run_geospatial_analysis(self, analysis_id: str) -> str:
             use_pca=analysis.use_pca,
         )
 
-        # 5. Informe ejecutivo (LLM). Si el LLM falla, no perdemos el análisis.
+        # 5. Informe factual. Si el informe falla, no perdemos el análisis.
         try:
             report_md = generate_report(result_data["statistics"])
         except Exception:
-            logger.exception("Fallo en la generación del informe LLM")
+            logger.exception("Fallo en la generación del informe factual")
             report_md = ""
 
         # Mapa de calor temporal de índices (rásters PNG). No es crítico: si falla,
@@ -62,6 +61,10 @@ def run_geospatial_analysis(self, analysis_id: str) -> str:
                 date_end=analysis.date_end.isoformat(),
                 analysis_id=str(analysis.id),
                 media_root=settings.MEDIA_ROOT,
+                study_type=analysis.study_type,
+                indices=analysis.indices,
+                scoring_reference=result_data["statistics"]["scoring_reference"],
+                artifact_attempt=str(attempt),
             )
         except Exception:
             logger.exception("Fallo generando los mapas de calor")
@@ -70,41 +73,39 @@ def run_geospatial_analysis(self, analysis_id: str) -> str:
         # Geometría disuelta de clusters para consultas PostGIS
         clusters_geom = _featurecollection_to_multipolygon(result_data["clusters_geojson"])
 
-        AnalysisResult.objects.update_or_create(
-            request=analysis,
-            defaults={
-                "clusters_geojson": result_data["clusters_geojson"],
-                "clusters_geom": clusters_geom,
-                "statistics": result_data["statistics"],
-                "report_markdown": report_md,
-                "heatmap_layers": heatmap_layers,
-                "images_used": result_data["images_used"],
-                "processing_seconds": result_data["processing_seconds"],
-            },
-        )
+        with transaction.atomic():
+            analysis = AnalysisRequest.objects.select_for_update().filter(pk=analysis_id).first()
+            if analysis is None or analysis.status != "PROCESSING" or analysis.attempt_token != attempt:
+                return "IGNORED"
+            AnalysisResult.objects.update_or_create(
+                request=analysis,
+                defaults={
+                    "clusters_geojson": result_data["clusters_geojson"],
+                    "clusters_geom": clusters_geom,
+                    "statistics": result_data["statistics"],
+                    "report_markdown": report_md,
+                    "heatmap_layers": heatmap_layers,
+                    "images_used": result_data["images_used"],
+                    "processing_seconds": result_data["processing_seconds"],
+                },
+            )
 
-        analysis.status = AnalysisRequest.Status.COMPLETED
-        analysis.finished_at = timezone.now()
-        analysis.save(update_fields=["status", "finished_at"])
+            analysis.status = AnalysisRequest.Status.COMPLETED
+            analysis.finished_at = timezone.now()
+            analysis.attempt_token = None
+            analysis.save(update_fields=["status", "finished_at", "attempt_token"])
         return "COMPLETED"
 
-    except Exception as exc:
+    except (ConnectionError, TimeoutError) as exc:
+        if self.request.retries < self.max_retries:
+            AnalysisRequest.objects.filter(pk=analysis_id,attempt_token=attempt,status="PROCESSING").update(
+                status=AnalysisRequest.Status.PENDING, attempt_token=None, error_message="Error temporal; reintentando.")
+            raise self.retry(exc=exc, countdown=getattr(settings, "ANALYSIS_RETRY_DELAY", 30))
+        mark_failed(analysis_id, "Falló el análisis tras agotar los reintentos.", attempt_token=attempt)
+        raise
+    except Exception:
         logger.exception("Pipeline falló para %s", analysis_id)
-        analysis.status = AnalysisRequest.Status.FAILED
-        analysis.error_message = str(exc)[:2000]
-        analysis.finished_at = timezone.now()
-        analysis.save(update_fields=["status", "error_message", "finished_at"])
-        
-        # Reembolso de cuota
-        try:
-            if hasattr(analysis.user, 'quota'):
-                user_quota = analysis.user.quota
-                if user_quota.analyses_used > 0:
-                    user_quota.analyses_used -= 1
-                    user_quota.save(update_fields=["analyses_used"])
-        except Exception as q_exc:
-            logger.error("No se pudo reembolsar la cuota al usuario: %s", q_exc)
-
+        mark_failed(analysis_id, "No se pudo completar el análisis. Revisa datos y configuración.", attempt_token=attempt)
         raise
 
 
@@ -118,3 +119,9 @@ def _featurecollection_to_multipolygon(fc: dict) -> MultiPolygon | None:
         elif geom.geom_type == "MultiPolygon":
             polys.extend(list(geom))
     return MultiPolygon(polys, srid=4326) if polys else None
+
+
+@shared_task(ignore_result=True)
+def recover_stale_requests():
+    from django.core.management import call_command
+    call_command("recover_stale_analyses")

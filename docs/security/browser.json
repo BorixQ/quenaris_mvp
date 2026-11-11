@@ -1,0 +1,16 @@
+{
+  "timestamp_utc": "2026-11-10T21:20:42.117332+00:00",
+  "browser": "Edge headless, isolated context",
+  "browser_version": "157.0.4341.42",
+  "ui_login": true,
+  "maplibre_private_image": true,
+  "no_token_in_local_storage": true,
+  "no_external_token_leak": true,
+  "stored_name_rendered_as_text": true,
+  "private_admin_login": true,
+  "public_admin_blocked_even_with_admin_cookie": true,
+  "foreign_image_denied": true,
+  "anonymous_image_denied": true,
+  "logout_clears_session": true,
+  "logout_revokes_server_token": true
+}

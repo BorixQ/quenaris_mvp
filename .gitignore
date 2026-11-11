@@ -29,3 +29,17 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+
+# Scientific test artifacts
+.pytest_cache/
+
+.uv-cache/
+.local-backups/
+.npm-cache/
+node_modules/
+*.tsbuildinfo
+frontend/app/dist/
+frontend/app/test-results/
+frontend/app/playwright-report/
+# Local screenshot contains the signed-in account name.
+docs/frontend/evidence/live-google.png

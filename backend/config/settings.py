@@ -6,11 +6,14 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key")
 DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+if len(SECRET_KEY) < 50 or SECRET_KEY.startswith(("dev-only", "cambiar-")):
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY debe ser una clave aleatoria de al menos 50 caracteres.")
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
@@ -40,7 +43,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "config.urls"
+ROOT_URLCONF = os.environ.get("DJANGO_URLCONF", "config.urls")
 WSGI_APPLICATION = "config.wsgi.application"
 
 TEMPLATES = [
@@ -69,10 +72,8 @@ DATABASES = {
 # --- DRF ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        # Token primero: si el request trae un token válido, gana este autenticador
-        # y NO se ejecuta la comprobación CSRF de SessionAuthentication.
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
+        # Las cookies del administrador no autentican la API pública.
+        "analysis.authentication.ExpiringTokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -80,20 +81,25 @@ REST_FRAMEWORK = {
     # Sin throttle global: el polling del frontend (cada 4 s) agotaría cualquier
     # límite por usuario. Solo se limita la CREACIÓN de análisis (lo costoso),
     # vía ScopedRateThrottle en la vista (scope "analysis_create").
-    "DEFAULT_THROTTLE_RATES": {"analysis_create": "40/hour"},
+    "NUM_PROXIES": 1,
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_THROTTLE_RATES": {"analysis_create": "40/hour", "login_ip": "100/hour", "login_account": "20/hour"},
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-]
+def env_list(name, default):
+    """Lee una lista de valores separados por comas, ignorando espacios."""
+    return [value.strip() for value in os.environ.get(name, default).split(",") if value.strip()]
+
+
+CORS_ALLOWED_ORIGINS = env_list(
+    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:8080,http://127.0.0.1:8080"
+)
 
 # Orígenes confiables para la validación CSRF de Django (peticiones POST/PUT/DELETE).
 # Añade aquí tu dominio de producción cuando despliegues.
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-]
+CSRF_TRUSTED_ORIGINS = env_list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:8080,http://127.0.0.1:8080"
+)
 
 # --- Celery ---
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -129,3 +135,32 @@ USE_I18N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Redis database 2 is separate from the broker and Celery results.
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache",
+                       "LOCATION": os.environ.get("DJANGO_CACHE_URL", "redis://redis:6379/2"),
+                       "KEY_PREFIX": "quenaris"}}
+AUTH_TOKEN_HOURS = 24
+DATA_UPLOAD_MAX_MEMORY_SIZE = 128 * 1024
+ANALYSIS_MAX_DAYS = 366
+ANALYSIS_MAX_VERTICES = 1000
+ANALYSIS_MAX_DOWNLOAD_BYTES = 24 * 1024 * 1024
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_PATH = "/admin/"
+CSRF_COOKIE_PATH = "/admin/"
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = os.environ.get("DJANGO_COOKIE_SECURE", "1") == "1"
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+SECURE_SSL_REDIRECT = os.environ.get("DJANGO_REQUIRE_HTTPS", "0") == "1"
+SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]
+if os.environ.get("DJANGO_TRUST_PROXY_SSL", "0") == "1":
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 12}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
