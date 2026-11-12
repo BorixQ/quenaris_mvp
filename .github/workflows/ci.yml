@@ -24,6 +24,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Simular despliegue y reversión
+        run: bash tests/test_deploy_homelab.sh
       - name: Construir entorno de pruebas
         run: docker compose -f compose.integration.yml build tests
       - name: Iniciar base de datos y Redis aislados

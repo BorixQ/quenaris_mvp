@@ -11,7 +11,7 @@ commit=${3:?Falta SHA completo del commit de main}
 [[ "$expected_archive_hash" =~ ^[0-9a-f]{64}$ && "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo 'Identificador inválido.' >&2; exit 1; }
 [[ -f "$release" && -d "$app_dir/.git" && -f "$app_dir/.env" ]] || { echo 'Falta la versión o la instalación esperada.' >&2; exit 1; }
 [[ "$(sha256sum "$release" | cut -d ' ' -f 1)" == "$expected_archive_hash" ]] || { echo 'El archivo no coincide con su SHA256.' >&2; exit 1; }
-if tar -tf "$release" | grep -Eq '(^/|(^|/)\.\.(/|$)|(^|/)(\.git|\.env|credentials|compose\.override\.yml)(/|$))'; then
+if tar -tf "$release" | grep -E '(^/|(^|/)\.\.(/|$)|(^|/)(\.git|\.env|credentials|compose\.override\.yml)(/|$)' >/dev/null; then
   echo 'El archivo contiene rutas no permitidas.' >&2; exit 1
 fi
 
