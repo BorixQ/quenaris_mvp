@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 import rasterio
 from rasterio.transform import from_origin
+from shapely.geometry import box, mapping, shape
+from shapely.ops import unary_union
 
 from analysis import scoring, indices
 from analysis.diagnosis_rules import infer_causes
@@ -124,9 +126,12 @@ def raster_case(tmp_path, cloudy=False, small=False):
     return path
 
 
+RASTER_AOI = mapping(box(-71.5, -16.402, -71.498, -16.4))
+
+
 def test_full_raster_analysis_provenance_and_masks(tmp_path):
     with patch("analysis.gee_pipeline._importance", return_value=([],"none")):
-        result = _analyze(str(raster_case(tmp_path)), ["NDVI"], "kmeans", 3, False, "agro")
+        result = _analyze(str(raster_case(tmp_path)), ["NDVI"], "kmeans", 3, False, "agro", RASTER_AOI)
     stats = result["statistics"]
     assert stats["quality"]["valid_pixels"] == 90
     assert stats["quality"]["valid_fraction"] == .9
@@ -135,10 +140,24 @@ def test_full_raster_analysis_provenance_and_masks(tmp_path):
     json.dumps(result, allow_nan=False)
 
 
+def test_group_polygons_and_area_are_clipped_to_requested_aoi(tmp_path):
+    from pyproj import Geod
+    aoi = box(-71.4999, -16.4019, -71.4981, -16.4001)
+    with patch("analysis.gee_pipeline._importance", return_value=([], "none")):
+        result = _analyze(str(raster_case(tmp_path)), ["NDVI"], "kmeans", 3, False, "agro", mapping(aoi))
+    groups = [shape(feature["geometry"]) for feature in result["clusters_geojson"]["features"]]
+    assert all(group.difference(aoi).area < 1e-15 for group in groups)
+    expected_ha = abs(Geod(ellps="WGS84").geometry_area_perimeter(unary_union(groups))[0]) / 10_000
+    assert result["statistics"]["total_area_ha"] == pytest.approx(expected_ha, abs=.01)
+    aoi_ha = abs(Geod(ellps="WGS84").geometry_area_perimeter(aoi)[0]) / 10_000
+    assert result["statistics"]["total_area_ha"] <= aoi_ha + .01
+    assert result["statistics"]["area_geometry_clipped"] is True
+
+
 @pytest.mark.parametrize("kwargs", [{"cloudy":True},{"small":True}])
 def test_unusable_rasters_fail_honestly(tmp_path,kwargs):
     with pytest.raises(ValueError, match="Píxeles válidos insuficientes"):
-        _analyze(str(raster_case(tmp_path,**kwargs)),["NDVI"],"kmeans",4,False,"agro")
+        _analyze(str(raster_case(tmp_path,**kwargs)),["NDVI"],"kmeans",4,False,"agro", RASTER_AOI)
 
 
 @pytest.mark.parametrize("selection", [[], ["LAI"], ["WDI"], ["inventado"]])
@@ -172,7 +191,7 @@ def test_constant_multiband_pca_does_not_create_false_groups(tmp_path):
     data[4] = 3
     with rasterio.open(path,"w",driver="GTiff",height=10,width=10,count=5,dtype="float32",
         crs="EPSG:4326",transform=from_origin(-71.5,-16.4,.0002,.0002)) as dst: dst.write(data)
-    result = _analyze(str(path), ["NDVI","EVI","NDMI"],"kmeans",4,True,"agro")
+    result = _analyze(str(path), ["NDVI","EVI","NDMI"],"kmeans",4,True,"agro", RASTER_AOI)
     assert result["statistics"]["n_clusters"] == 1
     assert result["statistics"]["silhouette"] is None
     assert result["statistics"]["pca"] is None
@@ -184,7 +203,7 @@ def test_pca_importance_uses_original_dimensions(tmp_path):
     data = np.stack([x,x*2,x*3,np.ones((10,10)),np.ones((10,10))*3]).astype("float32")
     with rasterio.open(path,"w",driver="GTiff",height=10,width=10,count=5,dtype="float32",
         crs="EPSG:4326",transform=from_origin(-71.5,-16.4,.0002,.0002)) as dst: dst.write(data)
-    result = _analyze(str(path),["NDVI","EVI","NDMI"],"kmeans",3,True,"agro")
+    result = _analyze(str(path),["NDVI","EVI","NDMI"],"kmeans",3,True,"agro", RASTER_AOI)
     stats = result["statistics"]
     assert stats["pca"]["n_components"] == 1
     assert {v["feature"] for v in stats["feature_importance"]} == {"NDVI","EVI","NDMI"}

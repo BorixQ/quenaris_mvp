@@ -26,7 +26,7 @@ def claim_attempt(analysis_id):
         return obj, token
 
 
-def mark_failed(analysis_id, message, *, attempt_token=None, pending_only=False, stale_before=None):
+def mark_failed(analysis_id, message, *, attempt_token=None, pending_only=False, processing_only=False, stale_before=None):
     with transaction.atomic():
         obj = AnalysisRequest.objects.select_for_update().filter(pk=analysis_id).first()
         if obj is None or obj.status in ("COMPLETED","FAILED"):
@@ -34,6 +34,8 @@ def mark_failed(analysis_id, message, *, attempt_token=None, pending_only=False,
         if attempt_token is not None and obj.attempt_token != attempt_token:
             return False
         if pending_only and obj.status != "PENDING":
+            return False
+        if processing_only and obj.status != "PROCESSING":
             return False
         last = obj.attempt_started_at or obj.started_at or obj.created_at
         if stale_before is not None and last >= stale_before:

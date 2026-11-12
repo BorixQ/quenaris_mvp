@@ -54,9 +54,6 @@ class AnalysisRequestCreateSerializer(serializers.ModelSerializer):
         if data["date_start"] >= data["date_end"]:
             raise serializers.ValidationError("date_start debe ser anterior a date_end.")
 
-        days = (data["date_end"]-data["date_start"]).days
-        if days > settings.ANALYSIS_MAX_DAYS:
-            raise serializers.ValidationError("El periodo supera el máximo operativo de 366 días.")
         w,s,e,n = data["aoi"].extent
         step = 20/111319.49079327358
         width, height = math.ceil((e-w)/step)+2, math.ceil((n-s)/step)+2

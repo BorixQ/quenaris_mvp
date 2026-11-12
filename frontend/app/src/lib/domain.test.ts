@@ -35,6 +35,12 @@ describe('geometry and operational validation', () => {
     expect(validateDraft({ ...draft, aoi: null }, quota).aoi).toBeTruthy();
     expect(validateDraft(draft, { ...quota, max_area_ha: .1 }).aoi).toBeTruthy();
   });
+  it('accepts periods over one year only when the account quota permits them', () => {
+    const extended = { ...draft, date_start: '2024-01-01', date_end: '2025-02-04' };
+    expect(dayCount(extended.date_start, extended.date_end)).toBe(400);
+    expect(validateDraft(extended, { ...quota, max_date_range_days: 400 }).date_end).toBeUndefined();
+    expect(validateDraft(extended, { ...quota, max_date_range_days: 399 }).date_end).toContain('399 días');
+  });
 });
 describe('authenticated requests', () => {
   it('sends credentials only to same-origin private image endpoints', () => {

@@ -3,7 +3,7 @@ WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-fund
 COPY . .
-RUN npm run build
+RUN npm run build && chmod -R a+rX /build/dist
 
 FROM nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
 COPY --from=build /build/dist /usr/share/nginx/html

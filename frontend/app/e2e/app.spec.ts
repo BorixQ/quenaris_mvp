@@ -18,11 +18,11 @@ class App {
   async login(seed: Seed, audit = false) {
     await this.page.goto('/login');
     if (audit) {
-      await expect(this.page.getByLabel('Usuario', { exact: true })).toBeVisible();
+      await expect(this.page.getByLabel('Correo o usuario', { exact: true })).toBeVisible();
       const result = await new AxeBuilder({ page: this.page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
       expect(result.violations.map(v => v.id)).toEqual([]);
     }
-    await this.page.getByLabel('Usuario', { exact: true }).fill(seed.username);
+    await this.page.getByLabel('Correo o usuario', { exact: true }).fill(seed.username);
     await this.page.getByLabel('Contraseña', { exact: true }).fill(seed.password);
     await this.page.getByRole('button', { name: 'Entrar a mi cuenta' }).click();
     await expect(this.page).toHaveURL(/\/analisis$/);

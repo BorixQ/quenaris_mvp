@@ -43,7 +43,7 @@ export function validateDraft(d: Draft, q: Quota): Record<string, string> {
   if (ha !== null && ha > Math.min(5000, q.max_area_ha) * 1.001) errors.aoi = `La superficie aproximada supera el máximo de ${Math.min(5000, q.max_area_ha)} ha. Reduce el terreno; el servidor comprobará el área exacta.`;
   const days = dayCount(d.date_start, d.date_end);
   if (!Number.isFinite(days) || days <= 0) errors.date_end = 'La fecha de fin debe ser posterior al inicio.';
-  else if (days > Math.min(366, q.max_date_range_days)) errors.date_end = `El periodo supera tu límite de ${Math.min(366, q.max_date_range_days)} días.`;
+  else if (days > q.max_date_range_days) errors.date_end = `El periodo supera tu límite de ${q.max_date_range_days} días.`;
   if (d.algorithm === 'kmeans' && (!Number.isInteger(d.n_clusters) || d.n_clusters < 2 || d.n_clusters > 12)) errors.n_clusters = 'Elige entre 2 y 12 grupos.';
   if (d.indices && (!d.indices.length || !d.indices.some(i => presets[d.study_type].scoring_indices.includes(i)))) errors.indices = 'Incluye al menos un índice con peso en la puntuación del estudio.';
   if (q.analyses_used >= q.analyses_allowed) errors.quota = 'Has alcanzado la cuota de análisis. Consulta los límites de tu cuenta.';

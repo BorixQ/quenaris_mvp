@@ -1,7 +1,7 @@
 import { cloneElement, useEffect, useRef, type ComponentProps, type ReactElement, type ReactNode } from 'react';
 import { CircleAlert, Info, LoaderCircle, CircleCheck, Clock3 } from 'lucide-react';
 import { statusLabel, SCIENCE_NOTE, studyInfo } from '../data/studies';
-import type { Status } from '../types';
+import type { Statistics, Status } from '../types';
 import s from '../styles/App.module.css';
 
 export function Button({ variant, className = '', ...props }: ComponentProps<'button'> & { variant?: 'secondary' | 'danger' }) {
@@ -26,6 +26,10 @@ export function StudyLabel({ value }: { value: string }) {
   return <span>{study?.short || value}{study?.experimental && <span className={`${s.badge} ${s.experimental}`}>Experimental</span>}</span>;
 }
 export function ScienceNote() { return <p className={s.science} role="note" data-no-print><Info aria-hidden="true" />{SCIENCE_NOTE}</p>; }
+export function AreaEstimateNotice({ statistics }: { statistics: Statistics }) {
+  if (statistics.area_geometry_clipped === true) return null;
+  return <Notice tone="warning">En este resultado, las áreas de los grupos se calcularon con celdas completas y pueden superar el terreno solicitado. Recalcula el análisis para recortar las áreas al polígono.</Notice>;
+}
 export function Loading({ text = 'Cargando datos…' }: { text?: string }) { return <div className={s.empty} role="status"><LoaderCircle className={s.spinner} aria-hidden="true" /><p>{text}</p></div>; }
 export function ErrorState({ error, retry }: { error: unknown; retry?: () => void }) {
   return <div className={`${s.card} ${s.empty}`}><CircleAlert aria-hidden="true" /><h2>No se pudo cargar esta información</h2><p>{error instanceof Error ? error.message : 'Vuelve a intentarlo.'}</p>{retry && <Button onClick={retry}>Volver a cargar</Button>}</div>;

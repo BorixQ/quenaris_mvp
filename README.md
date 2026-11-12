@@ -2,175 +2,111 @@
 
 # Quenaris
 
-**Exploración geoespacial para la agricultura y el territorio.**
+**Exploración satelital para comprender el territorio**
 
-*El campo no es uniforme. Sus datos tampoco deberían serlo.*
+Proyecto ganador del NASA Space Apps Challenge 2025, desarrollado con Arequipa y los ecosistemas altoandinos como contexto.
 
 </div>
 
----
+Quenaris ayuda a agrónomos y técnicos a explorar diferencias dentro de un terreno usando imágenes Sentinel-2 y datos topográficos. Permite delimitar un área, analizar un periodo y consultar grupos, mapas mensuales y un informe con la calidad y las limitaciones de los datos.
 
-Quenaris procesa imágenes satelitales multiespectrales (Sentinel-2) para explorar diferencias entre zonas. La plataforma calcula índices espectrales y topográficos, los combina en una **puntuación relativa (0–100)** según el estudio, segmenta el terreno mediante algoritmos de machine learning y genera un informe factual de sus estadísticas.
+> **Resultados exploratorios, sin calibración de campo.** La puntuación es relativa al área y periodo analizados. No demuestra salud, fertilidad, presencia de plagas ni éxito de una plantación y no prescribe intervenciones. Las observaciones deben contrastarse en campo.
 
-**Los resultados son exploratorios:** los índices, umbrales y recomendaciones deben validarse con datos de campo antes de tomar decisiones agronómicas. Un indicador satelital por sí solo no confirma una plaga, una deficiencia nutricional ni una condición de riego.
+![Historial de análisis de Quenaris con datos de prueba](docs/frontend/evidence/analyses-1440.png)
 
-Desarrollado con el entorno costero y desértico de Arequipa (Perú) como contexto, busca apoyar la gestión agrícola. La calibración y su efecto sobre el rendimiento o el uso de recursos aún deben verificarse con datos de campo.
+*Captura con datos controlados de prueba.*
 
-## Ciencia y resultados exploratorios
+## Qué permite hacer
 
-La versión científica `relative-percentiles-v2` prioriza salud general y reforestación como exploración del terreno. La puntuación compara índices dentro del AOI y periodo; no mide salud, fertilidad, salinidad ni viabilidad de plantación absolutas. Los pesos son hipótesis, no parámetros calibrados para cultivos o comunidades de puna.
+- **Mis análisis:** buscar y filtrar trabajos pendientes, en proceso, completados y fallidos; recuperar su estado después de recargar.
+- **Nuevo análisis:** elegir un estudio, dibujar un polígono o importar coordenadas CSV, definir el periodo y revisar la cuota y los parámetros antes de enviar.
+- **Resultados:** consultar cobertura utilizable, escenas, puntuación relativa, grupos, mapas mensuales, datos técnicos, informe imprimible y vista 3D.
+- **Mapas ampliados:** dibujar en una vista que ocupa la ventana y ampliar los resultados o el relieve 3D con la leyenda y los controles visibles.
+- **Acceso privado:** entrar con usuario y contraseña o, si está configurado, con Google. Los análisis y mapas están asociados a su propietario.
 
-- Máscara terrestre SCL, control de nodata, cobertura y observaciones válidas registradas.
-- Cuadrícula de salida de 20 m; bandas ópticas nativas de 10/20 m y DSM de unos 30 m.
-- Agrupaciones espectrales con etiquetas descriptivas; el ruido y la falta de heterogeneidad se mantienen visibles.
-- Mapas mensuales con los mismos índices, pesos y referencia del composite principal, recortados al intervalo solicitado.
-- Diagnósticos causales no validados retirados. Los informes deterministas muestran límites y verificaciones de campo, sin prescripciones ni llamadas al LLM en esta versión.
-- LAI/WDI no seleccionables mientras no exista una fórmula y procedencia justificadas. NDSI/SI2 no se usan como diagnóstico de salinidad.
+Se conservan cinco estudios. Salud general y potencial de reforestación son los contextos priorizados para exploración; **estado hídrico, fitosanidad y nutrición son experimentales**. Ninguno está calibrado con observaciones de campo.
 
-El informe de [auditoría científica](docs/science/AUDIT.md) contiene la matriz completa de fórmulas/fuentes, cambios de semántica, pruebas, límites y protocolo de campo. Los análisis históricos deben recalcularse para usar esta versión. Riego, fitosanidad y fertilización siguen siendo experimentales.
+## Interpretación científica
 
-## 🏗️ Arquitectura
+El motor `relative-percentiles-v2` calcula índices espectrales y variables topográficas, agrupa píxeles y combina índices en una puntuación relativa de 0 a 100. La normalización depende del área y del periodo: las puntuaciones de áreas o periodos distintos no son una escala agronómica absoluta.
 
-El frontend actual es una SPA React/TypeScript con tema claro, asistente de análisis, historial y resultados adaptables. Vite genera archivos estáticos que sirve Nginx; Node solo se utiliza al construir. La [documentación del rediseño](docs/frontend/README.md) incluye arquitectura, pruebas, capturas y reversión local. Los HTML anteriores se conservan como fuente histórica y sus URLs redirigen a las rutas nuevas.
+El procesamiento usa Sentinel-2 SR Harmonized, excluye clases no utilizables mediante SCL y registra cobertura, observaciones y escenas disponibles. La cuadrícula de análisis es de 20 m; los datos originales tienen resoluciones distintas y el DSM es de aproximadamente 30 m. Los mapas mensuales utilizan la referencia del análisis principal; sus diferencias son descriptivas y pueden estar afectadas por la cobertura disponible. El periodo de consulta incluye la fecha inicial y excluye la final.
 
-```
-┌────────────┐   POST /api/analyses (202)    ┌─────────────┐
-│  Frontend  │ ─────────────────────────────▶│   Django    │
-│  MapLibre  │ ◀──────── polling GET ─────────│  (web/API)  │
-└─────┬──────┘                                └──────┬──────┘
-      │ Vista 3D / heatmap / informe                 │ .delay()
-      ▼                                              ▼
-  /media (PNG privado vía Django)             ┌────────────┐   ┌─────────┐
-                                              │   Redis    │◀──│ Celery  │
-                                              │  (broker)  │   │ worker  │
-                                              └────────────┘   └────┬────┘
-                                                                    │
-                  GEE (Sentinel-2) → índices → scoring → clustering →
-                  GeoJSON + heatmaps + informe factual → PostGIS
-```
+Los informes actuales son deterministas y no llaman a un modelo de IA. Los resultados históricos pueden carecer de metadatos o usar una versión científica anterior. Consulta la [auditoría científica](docs/science/AUDIT.md) para ver fórmulas, fuentes, supuestos, limitaciones y el protocolo de validación en campo.
 
-Servicios (`docker-compose.yml`): **db** (PostGIS) · **redis** · **web** (Django + Gunicorn) · **worker** (Celery) · **frontend** (Nginx) · **admin** (privado) · **beat** (recuperación de tareas).
+## Arquitectura
 
-## 🧰 Stack
+| Componente | Tecnología y función |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, React Router y TanStack Query; mapas MapLibre y gráficos Chart.js. |
+| API y administración | Django, GeoDjango y Django REST Framework. La administración se sirve por separado. |
+| Procesamiento | Celery y Redis coordinan los trabajos; Google Earth Engine aporta las imágenes y el análisis geoespacial. |
+| Persistencia | PostgreSQL/PostGIS guarda solicitudes y resultados; un volumen separado almacena los mapas generados. |
+| Entrega | Docker Compose; Nginx sirve los archivos del frontend. Node se usa durante la construcción. |
 
-| Capa | Tecnología |
-|---|---|
-| Backend | Django 5.2 LTS + GeoDjango + Django REST Framework |
-| Asíncrono | Celery + Redis |
-| Base de datos | PostgreSQL + PostGIS |
-| Data science | Google Earth Engine, geopandas, rasterio, scikit-learn, XGBoost |
-| Informes | Resumen determinista; configuración LLM legacy reservada |
-| Frontend | React, TypeScript, Vite, React Router, TanStack Query, MapLibre GL JS y Chart.js |
-| Infra | Docker + docker-compose |
+## Ejecución local con Docker
 
-## 📁 Estructura
+Necesitas Git, Docker con el complemento Compose y acceso a internet. Para ejecutar análisis reales también necesitas un proyecto de Google Earth Engine habilitado y una cuenta de servicio con acceso. Consulta la [configuración de Earth Engine](docs/integration/README.md) y la [guía de seguridad](docs/security/README.md).
 
-```
-Terranode/
-├── docker-compose.yml          # Servicios y redes separadas
-├── .env.example                # Plantilla de variables (copiar a .env)
-├── deploy/nginx.conf           # Nginx: sirve frontend + proxy /api y /media
-├── backend/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── manage.py
-│   ├── config/                 # settings, urls, wsgi, celery
-│   └── analysis/
-│       ├── models.py           # AnalysisRequest / AnalysisResult (GeoDjango)
-│       ├── views.py serializers.py urls.py
-│       ├── tasks.py            # Tarea Celery que orquesta el pipeline
-│       ├── indices.py          # Índices + registro + presets por estudio
-│       ├── scoring.py          # Scoring multicriterio + prioridad
-│       ├── gee_pipeline.py     # GEE + clustering (KMeans/DBSCAN/HDBSCAN) + PCA + XGBoost
-│       ├── heatmap.py          # Rásters PNG por índice/mes
-│       ├── llm_report.py       # Informe factual sin llamadas al LLM
-│       └── management/commands/check_gee.py   # Diagnóstico de credenciales GEE
-└── frontend/
-    ├── app/                    # Frontend actual React/TypeScript; Docker construye y sirve dist
-    ├── inicio.html geoanalisis.html informes.html viewer3d.html login.html
-    ├── app.css                 # Sistema de diseño "aeroespacial/oscuro"
-    ├── auth.js nav.js geoanalisis.js informes.js viewer3d.js
-    └── ejemplo_aoi.csv
-```
+1. Clona el repositorio y prepara la configuración:
 
-## 🚀 Puesta en marcha (local)
+   ```bash
+   git clone https://github.com/BorixQ/quenaris_mvp.git
+   cd quenaris_mvp
+   cp .env.example .env
+   mkdir -p credentials
+   python3 -c 'import secrets; print(secrets.token_urlsafe(50))'
+   ```
 
-Requisitos: Docker + Docker Compose. Para desarrollar y probar el stack completo de forma aislada, ver [Integración y dependencias](docs/integration/README.md).
+2. Edita `.env`: configura `DJANGO_SECRET_KEY` con la clave generada, establece `POSTGRES_PASSWORD` y completa `GEE_PROJECT`, `GEE_SERVICE_ACCOUNT` y `GEE_PRIVATE_KEY_FILE`. La plantilla contiene el resto de opciones. Copia la clave JSON de la cuenta de servicio a `credentials/gee-sa-key.json`. Sin credenciales de Earth Engine se puede iniciar la interfaz, pero no ejecutar un análisis real.
+
+3. Construye e inicia los servicios y crea una cuenta administradora:
+
+   ```bash
+   docker compose config --quiet
+   docker compose up -d --build
+   docker compose exec web python manage.py createsuperuser
+   docker compose exec worker python manage.py check_gee
+   ```
+
+4. Abre [Quenaris](http://localhost:8080/analisis) e inicia sesión con la cuenta creada. La [administración Django](http://localhost:8001/admin/) requiere credenciales de administrador y solo escucha en la máquina local. El acceso con Google es opcional y requiere configurar `GOOGLE_OAUTH_CLIENT_ID` y los orígenes autorizados; es independiente de las credenciales de Earth Engine.
+
+La configuración de integración utilizada durante el desarrollo tiene su propio Compose: en este equipo sirve la aplicación en el puerto **8080** y el administrador en **18081**. Sus pasos y requisitos se describen en [Integración y dependencias](docs/integration/README.md). No abras los archivos HTML directamente desde el explorador de archivos.
+
+## Flujo de uso
+
+1. Entra y selecciona **Nuevo análisis**.
+2. Elige el estudio y, si lo deseas, asigna un nombre.
+3. Delimita el terreno dibujando un polígono o importando un CSV con columnas de longitud y latitud.
+4. Define el periodo. Los algoritmos, grupos, PCA e índices manuales están en configuración avanzada.
+5. Revisa superficie, fechas y cuota; envía el trabajo. La interfaz muestra el estado que devuelve el servidor.
+6. Al finalizar, consulta el resumen, los mapas y sus leyendas, los datos técnicos, el informe y la vista 3D. Ten en cuenta las advertencias y los meses sin datos.
+
+## Desarrollo y pruebas
+
+El frontend actual está en `frontend/app`. Con Node 24.22.1 o compatible:
 
 ```bash
-git clone https://github.com/BorixQ/quenaris_mvp.git
-cd quenaris_mvp
-cp .env.example .env            # completar variables (ver abajo)
-python3 -c 'import secrets; print(secrets.token_urlsafe(50))' # usar como DJANGO_SECRET_KEY
-
-# Clave de Google Earth Engine (service account)
-mkdir credentials
-# copiar gee-sa-key.json dentro de ./credentials/
-
-docker compose up -d --build
-docker compose exec web python manage.py createsuperuser
+cd frontend/app
+npm ci --ignore-scripts
+npm run build
+npm test
 ```
 
-- **Aplicación:** http://localhost:8080/analisis
-- **API:** http://localhost:8080/api/ (token del usuario)
-- **Administrador privado:** http://localhost:8001/admin/ (loopback o túnel SSH)
+Las pruebas de integración del backend y de navegador requieren preparar el entorno aislado. Para los comandos, dependencias, datos de prueba y limitaciones de las pruebas E2E, consulta [integración](docs/integration/README.md) y [frontend](docs/frontend/README.md). La última verificación local registró 62 pruebas de backend, 16 pruebas del frontend y 14 pruebas de navegador; también se comprobó la integración con Google y Earth Engine reales. Estas comprobaciones técnicas no sustituyen la validación científica ni una evaluación de usabilidad con agrónomos.
 
-Por defecto el puerto solo escucha en la propia máquina; el túnel Cloudflare es opcional. Para preparar una laptop y entender las limitaciones de seguridad, consulta **[HOMELAB.md](HOMELAB.md)**.
+## Seguridad y despliegue
 
-Los mapas y resultados requieren autenticación del propietario. La API y el administrador tienen rutas separadas; las cookies del administrador no autorizan la API pública. Tokens de 24 horas, cuotas atómicas, límites operativos y recuperación de trabajos se describen en **[Seguridad y acceso privado](docs/security/README.md)**.
+El Compose principal liga la aplicación y la administración a la máquina local por defecto. Los mapas privados pasan por Django y requieren autenticación y propiedad del análisis. La base de datos y los archivos de mapas están en volúmenes diferentes y deben respaldarse y restaurarse por separado.
 
-Valida las credenciales de Earth Engine de forma aislada:
+No incluyas `.env`, `credentials/` ni claves en Git. Antes de exponer la aplicación en una red o desplegarla en el homelab, revisa la [guía de seguridad](docs/security/README.md) y [HOMELAB.md](HOMELAB.md). El rendimiento y la restauración de copias aún deben verificarse en la laptop del homelab.
 
-```bash
-docker compose exec worker python manage.py check_gee
-```
+## Documentación
 
-## ⚙️ Configuración (`.env`)
-
-```env
-# Django
-DJANGO_SECRET_KEY=<clave-aleatoria-generada-de-al-menos-50-caracteres>
-DJANGO_DEBUG=0
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,tu-dominio.com
-
-# PostgreSQL / PostGIS
-POSTGRES_DB=quenaris
-POSTGRES_USER=quenaris
-POSTGRES_PASSWORD=password-seguro
-
-# Google Earth Engine (service account)
-GEE_SERVICE_ACCOUNT=sa@proyecto.iam.gserviceaccount.com
-GEE_PRIVATE_KEY_FILE=/credentials/gee-sa-key.json
-GEE_PROJECT=id-de-tu-proyecto-gcp
-
-# Login Google opcional; distinto de la autenticación de Earth Engine
-GOOGLE_OAUTH_CLIENT_ID=
-```
-
-**Requisitos previos de Google Earth Engine:** crear un proyecto en Google Cloud, habilitar la *Earth Engine API*, **registrar el proyecto** en [code.earthengine.google.com/register](https://code.earthengine.google.com/register), crear una *service account* con el rol *Earth Engine Resource Writer* **y** *Service Usage Consumer*, y descargar su clave JSON.
-
-## 🔄 Flujo de uso
-
-1. En **Geoanálisis**: nombra el análisis, elige el tipo de estudio (que preselecciona los índices), define el AOI (dibujo o CSV), el rango de fechas y el algoritmo, y procesa.
-2. El backend encola la tarea y responde de inmediato; el frontend muestra el progreso.
-3. Al completar: el mapa muestra las **zonas por prioridad** y un panel de **mapa de calor** navegable por índice y por mes.
-4. **Informes** muestra estadísticas, grupos, calidad y límites de interpretación.
-5. **Vista 3D** drapea las zonas y los índices sobre el relieve real.
-
-## 🗺️ Hoja de ruta
-
-- Presets de **Energía solar** (albedo MODIS, LST Landsat, ERA5-Land) y **Minería greenfield** (cocientes de banda Sentinel-2).
-- Modelos **supervisados** (KNN / Random Forest) para predecir salinidad/EC con datos de campo.
-- Integración de **ortomosaicos de dron** (RGB → multiespectral) para análisis de altísima resolución.
-- **InSAR (Sentinel-1)** para monitoreo geotécnico de relaves.
-
-## ⚠️ Notas
-
-- Cada análisis consume recursos de **Earth Engine** y del worker; revisar la cuota y condiciones del proyecto. El informe actual no llama a un LLM.
-- No commitear `.env`, `credentials/` ni la clave de GEE (ya excluidos en `.gitignore`).
-- Los mapas de calor bajo `/media/` requieren token y propiedad del análisis; no habilitar caché pública de esos endpoints.
-- La guía histórica para VPS **[DEPLOY.md](DEPLOY.md)** requiere revisión antes de utilizarla en internet.
-
----
-
-<div align="center"><sub>"Los datos son el fertilizante más poderoso del siglo XXI."</sub></div>
+- [Auditoría científica y protocolo de campo](docs/science/AUDIT.md)
+- [Diseño, frontend y pruebas](docs/frontend/README.md)
+- [Integración y dependencias](docs/integration/README.md)
+- [Seguridad y acceso privado](docs/security/README.md)
+- [CI/CD y despliegue en el homelab](docs/integration/ci-cd-homelab.md)
+- [Registro autónomo y acceso por correo](docs/security/registro-autonomo.md)
+- [Preparación del homelab](HOMELAB.md)

@@ -83,7 +83,9 @@ REST_FRAMEWORK = {
     # vía ScopedRateThrottle en la vista (scope "analysis_create").
     "NUM_PROXIES": 1,
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
-    "DEFAULT_THROTTLE_RATES": {"analysis_create": "40/hour", "login_ip": "100/hour", "login_account": "20/hour"},
+    "DEFAULT_THROTTLE_RATES": {"analysis_create": "40/hour", "login_ip": "100/hour", "login_account": "20/hour",
+                               "email_request_ip": "100/hour", "email_request_address": "5/hour",
+                               "email_verify_ip": "200/hour", "email_verify_address": "30/hour"},
 }
 
 def env_list(name, default):
@@ -142,8 +144,18 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache",
                        "LOCATION": os.environ.get("DJANGO_CACHE_URL", "redis://redis:6379/2"),
                        "KEY_PREFIX": "quenaris"}}
 AUTH_TOKEN_HOURS = 24
+PUBLIC_SIGNUP_ENABLED = os.environ.get("PUBLIC_SIGNUP_ENABLED", "0") == "1"
+EMAIL_LOGIN_ENABLED = os.environ.get("EMAIL_LOGIN_ENABLED", "0") == "1"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "1") == "1"
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "0") == "1"
+EMAIL_TIMEOUT = 10
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 128 * 1024
-ANALYSIS_MAX_DAYS = 366
 ANALYSIS_MAX_VERTICES = 1000
 ANALYSIS_MAX_DOWNLOAD_BYTES = 24 * 1024 * 1024
 SESSION_COOKIE_HTTPONLY = True
