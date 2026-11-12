@@ -193,7 +193,11 @@ class OAuthLoginView(PrivateResponseMixin, APIView):
                 hosted_domain = info.get('hd')
                 authoritative = domain == 'gmail.com' or (isinstance(hosted_domain, str) and hosted_domain.lower() == domain and bool(domain))
                 if not authoritative:
-                    return Response({"detail":"No podemos confirmar este correo con Google. Usa el código enviado a tu correo."},status=403)
+                    from .email_auth import email_login_available
+                    message = ("No podemos confirmar este correo con Google. Puedes solicitar un código por correo."
+                               if email_login_available() else
+                               "No podemos confirmar este correo con Google. Prueba con otra cuenta de Google o contacta con la administración.")
+                    return Response({"detail":message},status=403)
                 matches = email_matches(email)
                 if not matches and settings.PUBLIC_SIGNUP_ENABLED:
                     user = User.objects.create_user(username="google_" + uuid.uuid4().hex, email=email)
