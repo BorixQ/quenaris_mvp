@@ -142,9 +142,19 @@ def test_google_unhosted_email_uses_email_code_instead(monkeypatch):
     client = APIClient()
     with patch("analysis.views.id_token.verify_oauth2_token", return_value=info):
         response = client.post("/api/auth/oauth/", {"credential": "signed"}, format="json")
-    assert response.status_code == 403 and not GoogleIdentity.objects.exists()
+    assert response.status_code == 403 and "código por correo" in response.data["detail"]
+    assert not GoogleIdentity.objects.exists()
     code = request_code(client, "ana@work.example")
     assert verify(client, "ana@work.example", code).status_code == 200
+
+
+def test_google_unhosted_email_without_email_login_suggests_available_options(monkeypatch):
+    monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID", "test.apps.googleusercontent.com")
+    info = {"sub": "unhosted", "email": "ana@work.example", "email_verified": True}
+    with override_settings(EMAIL_LOGIN_ENABLED=False), patch("analysis.views.id_token.verify_oauth2_token", return_value=info):
+        response = APIClient().post("/api/auth/oauth/", {"credential": "signed"}, format="json")
+    assert response.status_code == 403 and "otra cuenta de Google" in response.data["detail"]
+    assert "código" not in response.data["detail"] and not GoogleIdentity.objects.exists()
 
 
 def test_google_will_not_take_over_self_registered_email(monkeypatch):
