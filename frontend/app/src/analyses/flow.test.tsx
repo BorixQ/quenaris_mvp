@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
@@ -13,7 +13,7 @@ import { EXPIRED_EVENT, TOKEN_KEY } from '../lib/api';
 import { dayCount } from '../lib/format';
 import { analysis, csv, quota } from '../test/fixtures';
 
-vi.mock('../maps/GeoMap', () => ({ default: () => <div aria-label="Mapa simulado para prueba de formulario" /> }));
+vi.mock('../maps/GeoMap', () => ({ default: ({ timestep }: { timestep?: string }) => <div aria-label="Mapa simulado para prueba de formulario" data-timestep={timestep} /> }));
 function renderPage(element: React.ReactNode, path = '/analisis', seed: unknown[] = []) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } } });
   client.setQueryData(['quota'], quota); client.setQueryData(['analyses'], seed);
@@ -129,6 +129,33 @@ describe('analysis workflows', () => {
     const user = userEvent.setup(); renderPage(<MapPanel analysis={analysis} />);
     await user.selectOptions(screen.getByLabelText('Capa'), 'ndmi');
     expect(screen.getByText('Leyenda de colores no registrada en este análisis histórico.')).toBeInTheDocument(); expect(screen.getByText('-0.3')).toBeInTheDocument();
+  });
+  it.each([false, true])('navigates only available months in map and 3D (terrain=%s)', async terrain => {
+    const user = userEvent.setup();
+    const withMonths = { ...analysis, result: { ...analysis.result!, heatmap_layers: { ...analysis.result!.heatmap_layers!, timesteps: ['2025-06', '2025-08', '2026-01'] } } };
+    renderPage(<MapPanel analysis={withMonths} terrain={terrain} />);
+    expect(screen.queryByRole('slider', { name: /Mes:/ })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Capa'), 'ndmi');
+    const slider = screen.getByRole('slider', { name: /Mes:/ });
+    expect(slider).toHaveAttribute('aria-valuetext', 'junio de 2025');
+    expect(screen.getByLabelText('Mapa simulado para prueba de formulario')).toHaveAttribute('data-timestep', '2025-06');
+    await user.click(screen.getByRole('button', { name: 'Mes disponible siguiente' }));
+    expect(slider).toHaveAttribute('aria-valuetext', 'agosto de 2025');
+    expect(screen.getByLabelText('Mapa simulado para prueba de formulario')).toHaveAttribute('data-timestep', '2025-08');
+    fireEvent.change(slider, { target: { value: '2' } });
+    expect(slider).toHaveAttribute('aria-valuetext', 'enero de 2026');
+    expect(screen.getByRole('button', { name: 'Mes disponible siguiente' })).toBeDisabled();
+    expect(screen.getByText(/Solo meses disponibles/)).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Capa'), '__zones__');
+    expect(screen.queryByRole('slider', { name: /Mes:/ })).not.toBeInTheDocument();
+  });
+  it('disables the timeline when a historical layer has no months', async () => {
+    const user = userEvent.setup();
+    const noMonths = { ...analysis, result: { ...analysis.result!, heatmap_layers: { ...analysis.result!.heatmap_layers!, timesteps: [] } } };
+    renderPage(<MapPanel analysis={noMonths} />);
+    await user.selectOptions(screen.getByLabelText('Capa'), 'ndmi');
+    expect(screen.getByRole('slider', { name: /Mes:/ })).toBeDisabled();
+    expect(screen.getByRole('slider', { name: /Mes:/ })).toHaveAttribute('aria-valuetext', 'Sin meses disponibles');
   });
   it('clears private cached data on session expiry', () => {
     sessionStorage.setItem(TOKEN_KEY, 'test-only-token');

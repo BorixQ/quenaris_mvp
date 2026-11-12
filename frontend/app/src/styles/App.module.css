@@ -139,6 +139,15 @@
 .mapControls > div { display: grid; gap: 5px; min-width: 125px; flex: 1; }
 .mapControls label { font-size: 11px; color: var(--muted); }
 .mapControls select { font-size: 12px; }
+.mapControls > .timeline { flex: 2 1 260px; min-width: min(100%, 240px); }
+.timelineControls { display: flex; align-items: center; gap: 8px; }
+.timelineControls input { flex: 1; min-width: 0; accent-color: var(--green); }
+.timelineButton { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border: 1px solid var(--control-border); border-radius: 8px; background: white; color: var(--ink); cursor: pointer; }
+.timelineButton svg { width: 18px; height: 18px; }
+.timelineButton:disabled { opacity: .45; cursor: not-allowed; }
+.timelineButton:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+.timelineEnds { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; }
+.timelineHint { margin: 0; color: var(--muted); font-size: 11px; }
 .legend { background: white; padding: 18px 22px; border-top: 1px solid var(--border); font-size: 11px; }
 .legendBar { height: 12px; border-radius: 3px; margin: 10px 0 5px; }
 .legendEnds { display: flex; justify-content: space-between; color: var(--muted); font-variant-numeric: tabular-nums; }
