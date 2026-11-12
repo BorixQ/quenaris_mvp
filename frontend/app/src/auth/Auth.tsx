@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { useQueryClient } from '@tanstack/react-query';
 import { api, EXPIRED_EVENT, TOKEN_KEY, token as storedToken } from '../lib/api';
 
-interface AuthValue { token: string | null; signedOut: boolean; signIn: (username: string, password: string) => Promise<void>; googleSignIn: (credential: string) => Promise<void>; logout: () => Promise<boolean> }
+interface AuthValue { token: string | null; signedOut: boolean; signIn: (username: string, password: string) => Promise<void>; googleSignIn: (credential: string) => Promise<void>; emailSignIn: (email: string, code: string) => Promise<void>; logout: () => Promise<boolean> }
 const Context = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState(storedToken);
@@ -21,12 +21,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleSignIn = useCallback(async (credential: string) => {
     const result = await api<{ token: string }>('/auth/oauth/', { method: 'POST', auth: false, body: JSON.stringify({ credential }) }); accept(result.token);
   }, [accept]);
+  const emailSignIn = useCallback(async (email: string, code: string) => {
+    const result = await api<{ token: string }>('/auth/email/verify/', { method: 'POST', auth: false, body: JSON.stringify({ email, code }) }); accept(result.token);
+  }, [accept]);
   const logout = useCallback(async () => {
     let revoked = true;
     try { await api('/auth/logout/', { method: 'POST' }); } catch { revoked = false; }
     finally { sessionStorage.removeItem(TOKEN_KEY); cache.clear(); setSignedOut(true); setToken(null); }
     return revoked;
   }, [cache]);
-  return <Context value={{ token, signedOut, signIn, googleSignIn, logout }}>{children}</Context>;
+  return <Context value={{ token, signedOut, signIn, googleSignIn, emailSignIn, logout }}>{children}</Context>;
 }
 export function useAuth() { const value = useContext(Context); if (!value) throw new Error('AuthProvider required'); return value; }

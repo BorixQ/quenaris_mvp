@@ -124,4 +124,6 @@ def _featurecollection_to_multipolygon(fc: dict) -> MultiPolygon | None:
 @shared_task(ignore_result=True)
 def recover_stale_requests():
     from django.core.management import call_command
+    from .models import EmailLoginChallenge
+    EmailLoginChallenge.objects.filter(expires_at__lte=timezone.now()).delete()
     call_command("recover_stale_analyses")

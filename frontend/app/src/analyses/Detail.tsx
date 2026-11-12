@@ -6,7 +6,7 @@ import { useAnalysis } from '../lib/queries';
 import { api } from '../lib/api';
 import { date, downloadJson, number, percent, title } from '../lib/format';
 import { active, studyInfo } from '../data/studies';
-import { Button, ConfirmDialog, ErrorState, Loading, Notice, ScienceNote, StatusBadge, StudyLabel } from '../components/UI';
+import { AreaEstimateNotice, Button, ConfirmDialog, ErrorState, Loading, Notice, ScienceNote, StatusBadge, StudyLabel } from '../components/UI';
 import { ClusterTable, TechnicalData } from './ResultData';
 import s from '../styles/App.module.css';
 
@@ -39,6 +39,7 @@ export default function Detail() {
         ].map(([key, label, to]) => <Link key={key} to={to} aria-current={view === key ? 'page' : undefined}>{label}</Link>)}</nav>
         {!stats.science_version && <Notice tone="warning">Resultado histórico sin versión científica registrada. Recalcula el análisis para usar las reglas actuales; no se muestran diagnósticos del informe histórico.</Notice>}
         {studyInfo(analysis.study_type)?.experimental && <Notice tone="warning">Estudio experimental: no está validado para determinar riego, plagas, nutrientes ni tratamientos.</Notice>}
+        {view !== 'informe' && <AreaEstimateNotice statistics={stats} />}
         {view === 'resumen' && <><div className={s.resultHero}><div><h2>Un punto de partida para observar el terreno</h2><p>Estos datos describen diferencias relativas dentro del área y periodo. Combínalos con observaciones de campo antes de tomar decisiones.</p></div><FileCheck2 aria-hidden="true" /></div>
           <div className={s.stats}>{[
             ['Cobertura utilizable', percent(stats.quality?.valid_fraction), 'Fracción de la cuadrícula del área'], ['Puntuación relativa', `${number(stats.suitability_global_mean)} /100`, 'Referencia propia del área y periodo'], ['Escenas utilizadas', number(result.images_used, 0), 'Composite del periodo principal'], ['Grupos detectados', number(stats.n_clusters, 0), 'Agrupaciones espectrales'],

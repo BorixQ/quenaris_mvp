@@ -49,6 +49,7 @@ class AnalysisRequest(models.Model):
     # Ciclo de vida
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
     celery_task_id = models.CharField(max_length=64, blank=True, default="")
+    last_enqueued_at = models.DateTimeField(null=True, editable=False)
     quota_charged = models.BooleanField(default=False)
     attempt_token = models.UUIDField(null=True, editable=False)
     attempt_started_at = models.DateTimeField(null=True, editable=False)
@@ -118,8 +119,8 @@ class UserQuota(models.Model):
     )
     analyses_allowed = models.PositiveIntegerField(default=1, help_text="Número de análisis permitidos")
     analyses_used = models.PositiveIntegerField(default=0, help_text="Número de análisis realizados")
-    max_area_ha = models.FloatField(default=1.0, help_text="Área máxima permitida por análisis en hectáreas")
-    max_date_range_days = models.PositiveIntegerField(default=31, help_text="Rango máximo de fechas en días")
+    max_area_ha = models.FloatField(default=10.0, help_text="Área máxima permitida por análisis en hectáreas")
+    max_date_range_days = models.PositiveIntegerField(default=123, help_text="Rango máximo de fechas en días")
 
     def __str__(self):
         return f"Quota for {self.user.username}: {self.analyses_used}/{self.analyses_allowed}"
@@ -137,3 +138,31 @@ def create_user_quota(sender, instance, created, **kwargs):
 class GoogleIdentity(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="google_identity")
     subject = models.CharField(max_length=255, unique=True)
+
+
+class GoogleAccessGrant(models.Model):
+    """Explicit administrator approval for a local user to link Google."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="google_access_grant")
+    enabled = models.BooleanField(default=True, verbose_name="Acceso habilitado")
+
+    class Meta:
+        verbose_name = "autorización de acceso con Google"
+        verbose_name_plural = "autorizaciones de acceso con Google"
+
+    def __str__(self):
+        return f"Google: {self.user}"
+
+
+class EmailIdentity(models.Model):
+    """An email address verified specifically for passwordless sign-in."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="email_identity")
+    email = models.CharField(max_length=254, unique=True)
+
+
+class EmailLoginChallenge(models.Model):
+    """A short-lived, single-use email code; the code itself is never stored."""
+    email = models.CharField(max_length=254, unique=True)
+    code_digest = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+    last_sent_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)

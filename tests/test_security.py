@@ -15,8 +15,9 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
-from analysis.authentication import LoginIPThrottle
-from analysis.models import AnalysisRequest, AnalysisResult, GoogleIdentity
+from analysis.authentication import LoginIPThrottle, LoginAccountThrottle
+from analysis.admin import LocalUserCreationForm, GoogleAccessGrantForm
+from analysis.models import AnalysisRequest, AnalysisResult, GoogleIdentity, GoogleAccessGrant
 from analysis.lifecycle import claim_attempt, mark_failed
 from analysis.tasks import run_geospatial_analysis
 from test_backend import user, payload, charged_request
@@ -125,13 +126,48 @@ def test_login_array_body_returns_validation_error():
     assert APIClient().post("/api/auth/token/",[],format="json").status_code == 400
 
 
+def test_local_login_accepts_email_or_username_and_rejects_ambiguous_matches(user):
+    user.email = 'person@example.com'
+    user.save()
+    client = APIClient()
+    for identifier in [user.username, 'PERSON@example.com']:
+        assert client.post('/api/auth/token/', {'username': identifier, 'password': 'test-only-password'}).status_code == 200
+    get_user_model().objects.create_user(username='second', email='PERSON@example.com', password='another-password')
+    assert client.post('/api/auth/token/', {'username': user.email, 'password': 'test-only-password'}).status_code == 400
+
+
+def test_password_throttle_shares_limit_between_username_and_email(user):
+    user.email = 'person@example.com'
+    user.save()
+    client = APIClient()
+    with patch.object(LoginAccountThrottle, 'rate', '2/min', create=True):
+        replies = [client.post('/api/auth/token/', {'username': identity, 'password': 'wrong'})
+                   for identity in [user.username, user.email, user.username]]
+    assert [reply.status_code for reply in replies] == [400, 400, 429]
+
+
+def test_admin_creates_user_with_contact_details_and_rejects_duplicate_email(user):
+    values = {'username': 'new-user', 'email': 'new@example.com', 'first_name': 'Ana',
+              'last_name': 'Prueba', 'password1': 'a-secure-password-123', 'password2': 'a-secure-password-123'}
+    form = LocalUserCreationForm(values)
+    assert form.is_valid(), form.errors
+    created = form.save()
+    assert (created.email, created.first_name, created.last_name) == ('new@example.com', 'Ana', 'Prueba')
+    values.update(username='another', email='NEW@example.com')
+    assert not LocalUserCreationForm(values).is_valid()
+    user.email = 'NEW@example.com'
+    user.save()
+    grant = GoogleAccessGrantForm({'user': created.pk, 'enabled': True})
+    assert not grant.is_valid()
+
+
 def test_google_cannot_take_over_local_email(user,monkeypatch):
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID","test.apps.googleusercontent.com")
     user.email = "owner@example.com"
     user.save()
     with patch("analysis.views.id_token.verify_oauth2_token",return_value={"sub":"unlinked","email":user.email,"email_verified":True}):
         response = APIClient().post("/api/auth/oauth/",{"credential":"signed"},format="json")
-    assert response.status_code == 409 and not Token.objects.filter(user=user).exists()
+    assert response.status_code == 403 and not Token.objects.filter(user=user).exists()
 
 
 def test_google_cannot_take_over_unlinked_generated_username(user,monkeypatch):
@@ -140,27 +176,51 @@ def test_google_cannot_take_over_unlinked_generated_username(user,monkeypatch):
     user.save()
     with patch("analysis.views.id_token.verify_oauth2_token",return_value={"sub":"unlinked","email":"new@example.com","email_verified":True}):
         response = APIClient().post("/api/auth/oauth/",{"credential":"signed"},format="json")
-    assert response.status_code == 409 and not GoogleIdentity.objects.exists()
+    assert response.status_code == 403 and not GoogleIdentity.objects.exists()
     assert not Token.objects.filter(user=user).exists()
 
 
-def test_google_requires_verified_email_and_uses_subject(monkeypatch):
+def test_google_requires_admin_approval_and_uses_subject(user,monkeypatch):
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID","test.apps.googleusercontent.com")
-    info = {"sub":"stable","email":"new@example.com","email_verified":False}
+    user.email = 'approved@gmail.com'
+    user.save()
+    info = {"sub":"stable","email":user.email,"email_verified":False}
     client = APIClient()
     with patch("analysis.views.id_token.verify_oauth2_token",return_value=info):
         assert client.post("/api/auth/oauth/",{"credential":"signed"},format="json").status_code == 400
         info["email_verified"] = True
+        assert client.post("/api/auth/oauth/",{"credential":"signed"},format="json").status_code == 403
+        GoogleAccessGrant.objects.create(user=user)
         first = client.post("/api/auth/oauth/",{"credential":"signed"},format="json")
         assert first.status_code == 200
         identity = GoogleIdentity.objects.get(subject="stable")
-        assert not identity.user.has_usable_password()
+        assert identity.user == user and identity.user.has_usable_password()
         info["email"] = "changed@example.com"
         second = client.post("/api/auth/oauth/",{"credential":"signed"},format="json")
         assert second.data["token"] == first.data["token"] and GoogleIdentity.objects.count() == 1
+        user.google_access_grant.enabled = False
+        user.google_access_grant.save()
+        assert client.post("/api/auth/oauth/",{"credential":"signed"},format="json").status_code == 403
+        user.google_access_grant.enabled = True
+        user.google_access_grant.save()
         identity.user.is_active = False
         identity.user.save()
         assert client.post("/api/auth/oauth/",{"credential":"signed"},format="json").status_code == 403
+
+
+def test_google_will_not_link_non_authoritative_or_ambiguous_email(user, monkeypatch):
+    monkeypatch.setenv('GOOGLE_OAUTH_CLIENT_ID', 'test.apps.googleusercontent.com')
+    user.email = 'person@example.com'
+    user.save()
+    GoogleAccessGrant.objects.create(user=user)
+    info = {'sub': 'stable', 'email': user.email, 'email_verified': True}
+    client = APIClient()
+    with patch('analysis.views.id_token.verify_oauth2_token', return_value=info):
+        assert client.post('/api/auth/oauth/', {'credential': 'signed'}, format='json').status_code == 403
+        info['hd'] = 'example.com'
+        get_user_model().objects.create_user(username='second', email='PERSON@example.com', password='another-password')
+        assert client.post('/api/auth/oauth/', {'credential': 'signed'}, format='json').status_code == 403
+    assert not GoogleIdentity.objects.exists()
 
 
 def test_google_cross_origin_and_form_posts_rejected(monkeypatch):
@@ -186,11 +246,26 @@ def test_pending_crash_recovery_and_fresh_retry(user):
     old = timezone.now()-timedelta(minutes=40)
     AnalysisRequest.objects.filter(pk=orphan.pk).update(created_at=old)
     AnalysisRequest.objects.filter(pk=retry.pk).update(started_at=old,attempt_started_at=timezone.now())
-    call_command("recover_stale_analyses")
+    with patch("analysis.tasks.run_geospatial_analysis.apply_async") as publish:
+        call_command("recover_stale_analyses")
+        call_command("recover_stale_analyses")
+        assert publish.call_count == 1
     orphan.refresh_from_db()
     retry.refresh_from_db()
     user.quota.refresh_from_db()
-    assert orphan.status == "FAILED" and retry.status == "PENDING" and user.quota.analyses_used == 1
+    assert orphan.status == "PENDING" and retry.status == "PENDING" and user.quota.analyses_used == 2
+    assert orphan.last_enqueued_at is not None and orphan.celery_task_id
+
+
+def test_pending_recovery_preserves_quota_when_broker_is_unavailable(user):
+    pending = charged_request(user)
+    AnalysisRequest.objects.filter(pk=pending.pk).update(created_at=timezone.now()-timedelta(minutes=40))
+    with patch("analysis.tasks.run_geospatial_analysis.apply_async", side_effect=ConnectionError):
+        call_command("recover_stale_analyses")
+    pending.refresh_from_db()
+    user.quota.refresh_from_db()
+    assert pending.status == "PENDING" and pending.last_enqueued_at is None
+    assert pending.quota_charged and user.quota.analyses_used == 1
 
 
 def test_old_attempt_cannot_commit_result(user):

@@ -22,7 +22,9 @@ import numpy as np
 import rasterio
 from django.conf import settings
 from rasterio import features as rio_features
-from shapely.geometry import shape
+from shapely.geometry import MultiPolygon, Polygon, shape
+from shapely.geometry.polygon import orient
+from shapely.ops import unary_union
 from sklearn.cluster import DBSCAN, KMeans
 from sklearn.metrics import silhouette_score
 
@@ -90,8 +92,25 @@ def _zscore(a: np.ndarray) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------
+def _polygonal_only(geom):
+    """Discard zero-area boundary intersections while retaining polygon parts."""
+    if geom.geom_type == "Polygon":
+        return geom
+    if hasattr(geom, "geoms"):
+        parts = [_polygonal_only(part) for part in geom.geoms]
+        return unary_union([part for part in parts if not part.is_empty])
+    return Polygon()
+
+
+def _geodesic_area_ha(geom, geod):
+    if geom.is_empty:
+        return 0.0
+    parts = geom.geoms if isinstance(geom, MultiPolygon) else [geom]
+    return sum(abs(geod.geometry_area_perimeter(orient(part, sign=1.0))[0]) for part in parts) / 10_000
+
+
 def _analyze(tif_path: str, index_list: list[str], algorithm: str,
-             n_clusters: int, use_pca: bool, study_type: str) -> dict:
+             n_clusters: int, use_pca: bool, study_type: str, aoi_geojson: dict) -> dict:
     with rasterio.open(tif_path) as src:
         data = src.read(masked=True).filled(np.nan)
         transform, crs = src.transform, src.crs
@@ -161,9 +180,16 @@ def _analyze(tif_path: str, index_list: list[str], algorithm: str,
         recs.append({"geometry": shape(geom), "cluster_id": int(val)})
     base = gpd.GeoDataFrame(recs, crs=crs).dissolve(by="cluster_id", as_index=False)
     gdf = base.to_crs(4326)
+    # Raster cells at the edge extend outside the requested geometry. Intersect
+    # vectorized groups with the original AOI before deriving map areas.
+    aoi = shape(aoi_geojson)
+    gdf.geometry = gdf.geometry.intersection(aoi).map(_polygonal_only)
+    gdf = gdf.loc[~gdf.geometry.is_empty].copy()
+    if gdf.empty:
+        raise ValueError("Los grupos no intersectan el área solicitada.")
     from pyproj import Geod
     geod = Geod(ellps="WGS84")
-    area_by = {int(r.cluster_id): abs(geod.geometry_area_perimeter(r.geometry)[0]) / 10_000
+    area_by = {int(r.cluster_id): _geodesic_area_ha(r.geometry, geod)
                for r in gdf.itertuples()}
 
     # Medias por zona solo de los índices presentes (para coropletas/stats)
@@ -211,7 +237,8 @@ def _analyze(tif_path: str, index_list: list[str], algorithm: str,
         "analysis_scale_m": ANALYSIS_SCALE,
         "collections": {"optical": "COPERNICUS/S2_SR_HARMONIZED", "surface_model": "COPERNICUS/DEM/GLO30_2024_1"},
         "date_end_exclusive": True,
-        "area_method": "WGS84 ellipsoidal geometry area; displayed AOI/quota uses equal-area EPSG:6933",
+        "area_method": "WGS84 ellipsoidal area of raster groups clipped to AOI; requested AOI uses EPSG:6933",
+        "area_geometry_clipped": True,
         "native_resolution_note": "Optical 10/20m; DSM ~30m; output grid 20m; nearest resampling.",
         "priority_interpretation": "heuristic inspection rank, not treatment urgency",
         "diagnostic_status": "withheld_no_field_validation",
@@ -310,7 +337,7 @@ def run_pipeline(aoi_geojson: dict, date_start: str, date_end: str,
     stack = build_index_stack(aoi, composite, index_list).addBands(composite.select(QUALITY_BANDS)).toFloat()
     tif = _download(stack, aoi, ANALYSIS_SCALE, index_list + QUALITY_BANDS)
     try:
-        out = _analyze(tif, index_list, algorithm, n_clusters, use_pca, study_type)
+        out = _analyze(tif, index_list, algorithm, n_clusters, use_pca, study_type, aoi_geojson)
     finally:
         os.unlink(tif)
 

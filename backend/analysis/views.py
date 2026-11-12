@@ -1,5 +1,4 @@
 """Authenticated application API; administration has a separate URL configuration."""
-import hashlib
 import logging
 import os
 import re
@@ -7,11 +6,13 @@ import uuid
 from pathlib import Path
 
 from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth import get_user_model
 from django.db import connection, transaction
-from django.db.models import F, Q
+from django.db.models import F
 from django.http import FileResponse, Http404
 from django.utils.cache import patch_vary_headers
+from django.utils import timezone
 from google.auth.exceptions import TransportError
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -25,8 +26,9 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .authentication import issue_token, LoginIPThrottle, LoginAccountThrottle
-from .models import AnalysisRequest, UserQuota, GoogleIdentity
+from .authentication import issue_token, LoginIPThrottle, LoginAccountThrottle, EmailOrUsernameTokenSerializer
+from .models import AnalysisRequest, UserQuota, GoogleIdentity, GoogleAccessGrant
+from .self_registration import email_matches, lock_identity, normalized_email
 from .serializers import AnalysisRequestCreateSerializer, AnalysisRequestDetailSerializer, ProfileSerializer
 from .lifecycle import mark_failed
 from .tasks import run_geospatial_analysis
@@ -46,6 +48,7 @@ class PrivateResponseMixin:
 class TokenView(PrivateResponseMixin, ObtainAuthToken):
     authentication_classes = []
     throttle_classes = [LoginIPThrottle, LoginAccountThrottle]
+    serializer_class = EmailOrUsernameTokenSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={"request": request})
@@ -89,7 +92,7 @@ class AnalysisViewSet(PrivateResponseMixin, viewsets.ModelViewSet):
             if data["aoi"].transform(6933, clone=True).area/10000 > quota.max_area_ha:
                 raise ValidationError("El área supera tu cuota actual.")
             task_id = str(uuid.uuid4())
-            analysis = serializer.save(user=request.user, quota_charged=True, celery_task_id=task_id)
+            analysis = serializer.save(user=request.user, quota_charged=True, celery_task_id=task_id, last_enqueued_at=timezone.now())
             UserQuota.objects.filter(pk=quota.pk).update(analyses_used=F("analyses_used")+1)
         try:
             run_geospatial_analysis.apply_async(args=[str(analysis.id)], task_id=task_id, retry=False)
@@ -141,7 +144,9 @@ class AuthConfigView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
     def get(self, request):
-        return Response({"google_client_id":google_client_id()})
+        from .email_auth import email_login_available
+        return Response({"google_client_id": google_client_id(), "public_signup": settings.PUBLIC_SIGNUP_ENABLED,
+                         "email_code_enabled": email_login_available()})
 
 
 class OAuthLoginView(PrivateResponseMixin, APIView):
@@ -174,23 +179,38 @@ class OAuthLoginView(PrivateResponseMixin, APIView):
         if (info.get("email_verified") is not True or not isinstance(subject,str) or not 1 <= len(subject) <= 255
                 or not isinstance(email,str) or not 1 <= len(email) <= 254):
             return Response({"detail":"Identidad de Google no verificada."},status=400)
+        try:
+            email = normalized_email(email)
+        except DjangoValidationError:
+            return Response({"detail":"Identidad de Google no verificada."},status=400)
         with transaction.atomic():
+            lock_identity("email:" + email, "google:" + subject)
             identity = GoogleIdentity.objects.select_related("user").filter(subject=subject).first()
             if identity:
                 user = identity.user
             else:
-                username = "google_"+hashlib.sha256(subject.encode()).hexdigest()
-                if User.objects.filter(Q(email__iexact=email)|Q(username__iexact=email)).exclude(username=username).exists():
-                    return Response({"detail":"La cuenta existente requiere asociación desde la administración privada."},status=409)
-                user, created = User.objects.get_or_create(username=username,defaults={"email":email})
-                if created:
+                domain = email.rpartition('@')[2].lower()
+                hosted_domain = info.get('hd')
+                authoritative = domain == 'gmail.com' or (isinstance(hosted_domain, str) and hosted_domain.lower() == domain and bool(domain))
+                if not authoritative:
+                    return Response({"detail":"No podemos confirmar este correo con Google. Usa el código enviado a tu correo."},status=403)
+                matches = email_matches(email)
+                if not matches and settings.PUBLIC_SIGNUP_ENABLED:
+                    user = User.objects.create_user(username="google_" + uuid.uuid4().hex, email=email)
                     user.set_unusable_password()
                     user.save(update_fields=["password"])
-                elif not GoogleIdentity.objects.filter(user=user,subject=subject).exists():
-                    return Response({"detail":"La cuenta existente requiere asociación desde la administración privada."},status=409)
-                identity, _ = GoogleIdentity.objects.get_or_create(subject=subject,defaults={"user":user})
-                user = identity.user
-            if not user.is_active:
+                    GoogleAccessGrant.objects.create(user=user)
+                    GoogleIdentity.objects.create(user=user, subject=subject)
+                else:
+                    if len(matches) != 1 or matches[0].email.strip().casefold() != email:
+                        return Response({"detail":"El acceso requiere autorización de la administración."},status=403)
+                    user = matches[0]
+                    if not user.is_active or not GoogleAccessGrant.objects.filter(user=user, enabled=True).exists():
+                        return Response({"detail":"El acceso requiere autorización de la administración."},status=403)
+                    if GoogleIdentity.objects.filter(user=user).exists():
+                        return Response({"detail":"Esta cuenta ya está vinculada a otra identidad de Google."},status=409)
+                    GoogleIdentity.objects.create(user=user, subject=subject)
+            if not user.is_active or not GoogleAccessGrant.objects.filter(user=user, enabled=True).exists():
                 return Response({"detail":"Cuenta no disponible."},status=403)
         return Response({"token":issue_token(user).key})
 
