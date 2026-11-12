@@ -77,7 +77,17 @@ tar -C "$app_dir" -xf "$release"
 "${compose[@]}" build web worker admin beat frontend
 "${compose[@]}" up -d --no-deps --wait web
 "${compose[@]}" up -d --no-deps worker admin beat frontend
-curl --fail --silent --show-error --retry 8 --retry-delay 2 --retry-connrefused http://127.0.0.1:8080/api/health/ > /dev/null
+# Nginx can accept a connection before it is ready to proxy it. Retry every
+# transient curl failure (including a reset), not just connection refused.
+ready=0
+for attempt in {1..30}; do
+  if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 http://127.0.0.1:8080/api/health/ > /dev/null; then
+    ready=1
+    break
+  fi
+  sleep 2
+done
+[[ "$ready" == 1 ]] || { echo 'El frontend no respondió después de varios intentos.' >&2; false; }
 trap - ERR
 echo "Actualización terminada. Versión: $commit"
 echo "Copia local y referencias de reversión: $backup"

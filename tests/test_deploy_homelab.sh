@@ -26,10 +26,14 @@ esac
 EOF
 cat > "$temp/bin/curl" <<'EOF'
 #!/usr/bin/env bash
-exit 0
+count=0
+[[ ! -f "$FAKE_CURL_COUNTER" ]] || count=$(cat "$FAKE_CURL_COUNTER")
+count=$((count + 1))
+printf '%s\n' "$count" > "$FAKE_CURL_COUNTER"
+[[ "$count" -gt "${FAKE_CURL_FAILURES:-0}" ]] || exit 56
 EOF
 chmod +x "$temp/bin/"*
-export PATH="$temp/bin:$PATH" FAKE_DOCKER_LOG="$temp/docker.log"
+export PATH="$temp/bin:$PATH" FAKE_DOCKER_LOG="$temp/docker.log" FAKE_CURL_COUNTER="$temp/curl-count"
 git -C "$temp/source" init -q -b main
 git -C "$temp/source" config user.email test@example.invalid
 git -C "$temp/source" config user.name Test
@@ -67,9 +71,10 @@ grep -q 'rollback-images.yml up -d --no-build' "$FAKE_DOCKER_LOG"
 
 # A good deployment must preserve server-only configuration and credentials.
 sleep 1
-bash "$repo/scripts/deploy-homelab.sh" "$temp/release.tar" "$hash" "$commit" > "$temp/success.out" 2>&1 || { cat "$temp/success.out"; exit 1; }
+FAKE_CURL_FAILURES=2 bash "$repo/scripts/deploy-homelab.sh" "$temp/release.tar" "$hash" "$commit" > "$temp/success.out" 2>&1 || { cat "$temp/success.out"; exit 1; }
 [[ "$(cat "$temp/app/app.txt")" == new ]]
+[[ "$(cat "$FAKE_CURL_COUNTER")" -eq 3 ]]
 [[ "$(cat "$temp/app/.env")" == private-config ]]
 [[ "$(cat "$temp/app/compose.override.yml")" == local-override ]]
 [[ "$(cat "$temp/app/credentials/key")" == private-credential ]]
-echo 'Deployment simulations passed: active job, rollback and successful update.'
+echo 'Deployment simulations passed: active job, rollback, transient connection errors and successful update.'
