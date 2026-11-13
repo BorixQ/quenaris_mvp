@@ -5,6 +5,7 @@ export type Status = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 export type Algorithm = 'kmeans' | 'dbscan' | 'hdbscan';
 export interface Quota {
   email: string; first_name: string; last_name: string; is_superuser: boolean;
+  is_staff?: boolean;
   analyses_used: number; analyses_allowed: number; max_area_ha: number; max_date_range_days: number;
   area_allowance_ha?: number | null; area_used_ha?: number; area_remaining_ha?: number | null;
 }
@@ -37,9 +38,22 @@ export interface AnalysisResult {
 export interface Analysis {
   id: string; name: string; aoi: Polygon; area_ha: number; date_start: string; date_end: string;
   study_type: string; algorithm: Algorithm; n_clusters: number; use_pca: boolean; indices: string[] | null;
-  status: Status; error_message: string; created_at: string; finished_at: string | null;
+  status: Status; error_message?: string; created_at: string; finished_at: string | null;
   result: AnalysisResult | null; user_email?: string;
+  sharing_enabled?: boolean; share_path?: string | null;
+  is_featured?: boolean; featured_description?: string; thumbnail_url?: string | null;
 }
+export interface Sharing { sharing_enabled: boolean; share_path: string | null }
+export interface FeaturedState { is_featured: boolean; featured_description: string; thumbnail_url?: string | null }
+export interface SharedAccount extends FeaturedState { is_owner: boolean; is_saved: boolean; can_feature: boolean }
+export interface ProjectSummary {
+  name: string; share_path: string | null; analysis_id?: string; aoi?: Polygon;
+  study_type?: string; area_ha?: number; date_start?: string; date_end?: string;
+  description?: string; featured_at?: string;
+  thumbnail_url?: string | null;
+}
+export interface ReceivedProject extends ProjectSummary { id: number; available: boolean; saved_at: string }
+export interface ProjectPage<T> { count: number; next: string | null; previous: string | null; results: T[] }
 export interface AnalysisInput {
   name: string; aoi: Polygon; date_start: string; date_end: string; study_type: Study;
   algorithm: Algorithm; n_clusters: number; use_pca: boolean; indices: string[] | null;

@@ -7,6 +7,7 @@ from django.db.migrations.executor import MigrationExecutor
 @pytest.mark.django_db(transaction=True)
 def test_quota_defaults_migration_preserves_existing_values():
     executor = MigrationExecutor(connection)
+    latest_target = executor.loader.graph.leaf_nodes("analysis")
     old_target = [("analysis", "0008_googleaccessgrant")]
     new_target = [("analysis", "0009_userquota_defaults")]
     executor.migrate(old_target)
@@ -25,7 +26,7 @@ def test_quota_defaults_migration_preserves_existing_values():
         assert quota_model._meta.get_field("max_area_ha").default == 10.0
         assert quota_model._meta.get_field("max_date_range_days").default == 123
     finally:
-        MigrationExecutor(connection).migrate([("analysis", "0012_cumulative_area_quota")])
+        MigrationExecutor(connection).migrate(latest_target)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -33,6 +34,7 @@ def test_cumulative_quota_migration_resets_standard_trials_but_preserves_custom_
     old_target = [("analysis", "0011_email_identity")]
     new_target = [("analysis", "0012_cumulative_area_quota")]
     executor = MigrationExecutor(connection)
+    latest_target = executor.loader.graph.leaf_nodes("analysis")
     executor.migrate(old_target)
     try:
         apps = executor.loader.project_state(old_target).apps
@@ -56,4 +58,4 @@ def test_cumulative_quota_migration_resets_standard_trials_but_preserves_custom_
         preserved_admin = quota.objects.get(user_id=admin.pk)
         assert (preserved_admin.area_allowance_ha, preserved_admin.max_date_range_days) == (None, 123)
     finally:
-        MigrationExecutor(connection).migrate(new_target)
+        MigrationExecutor(connection).migrate(latest_target)

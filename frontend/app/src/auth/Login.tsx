@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, LockKeyhole, LoaderCircle } from 'lucide-react';
+import { ArrowRight, LockKeyhole, LoaderCircle, Star } from 'lucide-react';
 import { useAuth } from './Auth';
 import { api } from '../lib/api';
 import { Brand } from '../components/Layout';
@@ -59,11 +59,12 @@ export default function Login() {
     try { await auth.emailSignIn(email.trim(), code); navigate(from, { replace: true }); }
     catch (e) { setError(e instanceof Error ? e.message : 'No se pudo verificar el código.'); } finally { setBusy(false); }
   }
-  return <div className={s.login}><aside className={s.loginAside}><Brand /><h1>Observa el terreno.<br /><em>Comprende sus diferencias.</em></h1>
+  return <div className={s.login}><aside className={s.loginAside}><Brand home /><h1>Observa el terreno.<br /><em>Comprende sus diferencias.</em></h1>
     <p>Exploración satelital para acompañar el trabajo de agrónomos y técnicos. Del área de interés a los datos, con su contexto y sus límites.</p>
     <svg className={s.contour} viewBox="0 0 450 180" fill="none" aria-hidden="true"><path d="M-20 164C40 10 118 174 190 80S343 60 480 5M-20 149C44-3 123 157 189 64S350 46 480-10M-20 178C45 30 113 191 199 98S346 82 480 24M-20 191C56 50 122 205 207 116S361 101 480 39M-20 207C52 65 135 215 215 137S365 118 480 56" stroke="currentColor" strokeWidth="1.2"/><path d="m139 125 54-55 77 30-20 53-82 8Z" fill="#16653414" stroke="#166534" strokeWidth="2"/><circle cx="194" cy="70" r="4" fill="#166534"/></svg>
     <small>Sentinel-2 · Arequipa y ecosistemas altoandinos<br />Resultados exploratorios. La observación de campo sigue siendo esencial.</small>
   </aside><main className={s.loginMain}><div className={s.loginForm}><p className={s.eyebrow}>TU ESPACIO DE TRABAJO</p><h2>Bienvenido a Queñaris</h2><p>{config.data?.public_signup ? 'Entra o crea tu cuenta para consultar tus análisis.' : 'Accede para crear y consultar tus análisis.'}</p>
+    <Link className={`${s.button} ${s.secondary} ${s.full} ${s.loginFeatured}`} to="/destacados"><Star size={16} aria-hidden="true" />Ver proyectos destacados</Link><p className={s.hint}>Puedes explorarlos sin iniciar sesión.</p>
     {location.state?.notice && <Notice tone="warning">{String(location.state.notice)}</Notice>}
     {error && <Notice tone="error">{error}</Notice>}
     <div className={s.google} ref={googleRef} role="group" aria-label="Acceso con Google" />
@@ -84,6 +85,6 @@ export default function Login() {
       <Field id="username" label="Correo o usuario"><input autoComplete="username" autoCapitalize="none" spellCheck={false} required value={username} onChange={e => setUsername(e.target.value)} disabled={busy} /></Field>
       <Field id="password" label="Contraseña"><input type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} disabled={busy} /></Field>
       <Button type="submit" className={s.full} disabled={busy}>Entrar a mi cuenta <ArrowRight aria-hidden="true" /></Button>
-    </form>{!config.data?.public_signup && <p className={s.small}>Las cuentas y el acceso con Google se habilitan desde la administración.</p>}<p className={s.science}><LockKeyhole aria-hidden="true" />Tus análisis y mapas son privados. Solo se muestran a tu cuenta.</p>
+    </form>{!config.data?.public_signup && <p className={s.small}>Las cuentas y el acceso con Google se habilitan desde la administración.</p>}<p className={s.science}><LockKeyhole aria-hidden="true" />Tus análisis empiezan privados. Tú decides cuándo activar o retirar un enlace compartido.</p>
   </div></main></div>;
 }
