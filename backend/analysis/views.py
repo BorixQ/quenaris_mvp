@@ -31,6 +31,7 @@ from .models import AnalysisRequest, UserQuota, GoogleIdentity, GoogleAccessGran
 from .self_registration import email_matches, lock_identity, normalized_email
 from .serializers import AnalysisRequestCreateSerializer, AnalysisRequestDetailSerializer, ProfileSerializer
 from .lifecycle import mark_failed
+from .quota import chargeable_area, quota_error, quota_for
 from .tasks import run_geospatial_analysis
 
 User = get_user_model()
@@ -80,20 +81,22 @@ class AnalysisViewSet(PrivateResponseMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         with transaction.atomic():
-            UserQuota.objects.get_or_create(user=request.user)
+            quota_for(request.user)
             quota = UserQuota.objects.select_for_update().get(user=request.user)
-            if quota.analyses_used >= quota.analyses_allowed:
-                raise ValidationError("Has alcanzado tu cuota de análisis.")
             if AnalysisRequest.objects.filter(user=request.user, status__in=["PENDING", "PROCESSING"]).exists():
                 raise ValidationError("Ya tienes un análisis pendiente o en proceso.")
             data = serializer.validated_data
-            if (data["date_end"]-data["date_start"]).days > quota.max_date_range_days:
-                raise ValidationError("El periodo supera tu cuota actual.")
-            if data["aoi"].transform(6933, clone=True).area/10000 > quota.max_area_ha:
-                raise ValidationError("El área supera tu cuota actual.")
+            area = chargeable_area(data["aoi"])
+            error = quota_error(quota, data, area)
+            if error:
+                raise ValidationError(error)
             task_id = str(uuid.uuid4())
-            analysis = serializer.save(user=request.user, quota_charged=True, celery_task_id=task_id, last_enqueued_at=timezone.now())
-            UserQuota.objects.filter(pk=quota.pk).update(analyses_used=F("analyses_used")+1)
+            charged_area = area if quota.area_allowance_ha is not None else None
+            analysis = serializer.save(user=request.user, quota_charged=True, charged_area_ha=charged_area, celery_task_id=task_id, last_enqueued_at=timezone.now())
+            updates = {"analyses_used": F("analyses_used")+1}
+            if charged_area is not None:
+                updates["area_used_ha"] = F("area_used_ha") + charged_area
+            UserQuota.objects.filter(pk=quota.pk).update(**updates)
         try:
             run_geospatial_analysis.apply_async(args=[str(analysis.id)], task_id=task_id, retry=False)
         except Exception:
@@ -221,11 +224,14 @@ class OAuthLoginView(PrivateResponseMixin, APIView):
 
 class UserQuotaView(PrivateResponseMixin, APIView):
     def get(self, request):
-        quota, _ = UserQuota.objects.get_or_create(user=request.user)
+        quota = quota_for(request.user)
         return Response({"email":request.user.email,"first_name":request.user.first_name,
             "last_name":request.user.last_name,"is_superuser":request.user.is_superuser,
             "analyses_used":quota.analyses_used,"analyses_allowed":quota.analyses_allowed,
-            "max_area_ha":quota.max_area_ha,"max_date_range_days":quota.max_date_range_days})
+            "max_area_ha":quota.max_area_ha,"max_date_range_days":quota.max_date_range_days,
+            "area_allowance_ha":float(quota.area_allowance_ha) if quota.area_allowance_ha is not None else None,
+            "area_used_ha":float(quota.area_used_ha),
+            "area_remaining_ha":float(max(0, quota.area_allowance_ha - quota.area_used_ha)) if quota.area_allowance_ha is not None else None})
 
     def post(self, request):
         serializer = ProfileSerializer(data=request.data)

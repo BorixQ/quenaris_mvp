@@ -71,4 +71,4 @@ jobs:
             if curl --fail --silent http://127.0.0.1:18090/login > /dev/null; then break; fi
             sleep 1
           done
-          npx playwright test e2e/registration.spec.ts e2e/timeline.spec.ts --reporter=list
+          npx playwright test e2e/registration.spec.ts e2e/timeline.spec.ts e2e/quota.spec.ts --reporter=list

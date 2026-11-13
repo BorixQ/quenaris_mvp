@@ -45,7 +45,8 @@ def test_email_signup_and_returning_login_are_single_use():
     assert response.status_code == 200 and response.data["token"]
     identity = EmailIdentity.objects.select_related("user").get(email="person@example.com")
     assert not identity.user.has_usable_password()
-    assert (identity.user.quota.max_area_ha, identity.user.quota.max_date_range_days) == (10, 123)
+    assert (identity.user.quota.max_area_ha, identity.user.quota.max_date_range_days) == (10, 124)
+    assert identity.user.quota.area_allowance_ha == 10 and identity.user.quota.area_used_ha == 0
     assert verify(client, "person@example.com", code).status_code == 400
     next_code = request_code(client, "person@example.com")
     assert verify(client, "PERSON@example.com", next_code).status_code == 200
@@ -133,7 +134,7 @@ def test_google_self_signup_is_tied_to_subject(email, hd, monkeypatch):
     identity = GoogleIdentity.objects.select_related("user").get(subject="google-subject")
     assert GoogleAccessGrant.objects.filter(user=identity.user, enabled=True).exists()
     assert not identity.user.has_usable_password() and GoogleIdentity.objects.count() == 1
-    assert identity.user.quota.max_date_range_days == 123
+    assert identity.user.quota.max_date_range_days == 124
 
 
 def test_google_unhosted_email_uses_email_code_instead(monkeypatch):

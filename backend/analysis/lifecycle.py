@@ -1,8 +1,8 @@
 """Atomic ownership of attempts and one-time quota refunds."""
 import uuid
 from datetime import timedelta
+from decimal import Decimal
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 from .models import AnalysisRequest, UserQuota
 
@@ -41,7 +41,12 @@ def mark_failed(analysis_id, message, *, attempt_token=None, pending_only=False,
         if stale_before is not None and last >= stale_before:
             return False
         if obj.quota_charged:
-            UserQuota.objects.filter(user_id=obj.user_id,analyses_used__gt=0).update(analyses_used=F("analyses_used")-1)
+            quota = UserQuota.objects.select_for_update().filter(user_id=obj.user_id).first()
+            if quota:
+                quota.analyses_used = max(0, quota.analyses_used - 1)
+                if obj.charged_area_ha is not None:
+                    quota.area_used_ha = max(Decimal("0"), quota.area_used_ha - obj.charged_area_ha)
+                quota.save(update_fields=["analyses_used", "area_used_ha"])
             obj.quota_charged = False
         obj.status, obj.error_message = "FAILED", message
         obj.finished_at, obj.attempt_token = timezone.now(), None

@@ -41,6 +41,12 @@ describe('geometry and operational validation', () => {
     expect(validateDraft(extended, { ...quota, max_date_range_days: 400 }).date_end).toBeUndefined();
     expect(validateDraft(extended, { ...quota, max_date_range_days: 399 }).date_end).toContain('399 días');
   });
+  it('uses remaining hectares rather than the historical analysis count for trial accounts', () => {
+    const trial = { ...quota, analyses_allowed: 1, analyses_used: 1, max_area_ha: 10, max_date_range_days: 124, area_allowance_ha: 10, area_used_ha: 3, area_remaining_ha: 7 };
+    expect(validateDraft(draft, trial).quota).toBeUndefined();
+    expect(validateDraft(draft, { ...trial, area_remaining_ha: 0 }).quota).toMatch(/hectáreas/);
+    expect(validateDraft(draft, { ...trial, area_remaining_ha: .01 }).aoi).toMatch(/saldo|disponibles/);
+  });
 });
 describe('authenticated requests', () => {
   it('sends credentials only to same-origin private image endpoints', () => {

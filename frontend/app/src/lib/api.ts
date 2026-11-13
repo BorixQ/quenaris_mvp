@@ -23,7 +23,7 @@ export async function api<T>(path: string, init: RequestInit & { auth?: boolean 
   try { response = await fetch(`/api${path}`, { ...options, headers, credentials: 'omit' }); }
   catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') throw e;
-    throw new ApiError(0, 'No se pudo conectar con Quenaris. Revisa la conexión e inténtalo nuevamente.');
+    throw new ApiError(0, 'No se pudo conectar con Queñaris. Revisa la conexión e inténtalo nuevamente.');
   }
   if (response.status === 204) return undefined as T;
   const isJson = response.headers.get('content-type')?.includes('application/json');

@@ -4,7 +4,7 @@ Este documento describe los cambios locales, no afirma que estén desplegados ni
 
 ## Recorrido y cuentas existentes
 
-Con `PUBLIC_SIGNUP_ENABLED=1`, una persona nueva puede crear su cuenta al entrar con Google o, si además está habilitado el correo, al verificar el código recibido. La cuenta nueva recibe la cuota predeterminada vigente: 10 ha, 123 días y un análisis disponible. Son límites distintos de las capacidades del servidor y no afectan retroactivamente las cuotas de otras cuentas.
+Con `PUBLIC_SIGNUP_ENABLED=1`, una persona nueva puede crear su cuenta al entrar con Google o, si además está habilitado el correo, al verificar el código recibido. Una cuenta nueva recibe 10 ha acumuladas y 124 días por análisis, aproximadamente cuatro meses. Puede realizar varios análisis hasta agotar su saldo de superficie, con uno activo a la vez. Consulta la [transición y las excepciones de cuotas](cuotas-area.md).
 
 Google debe entregar un correo verificado cuya titularidad pueda considerar autorizada para ese inicio de sesión: Gmail o una cuenta Google Workspace cuyo dominio coincida con el dominio alojado que indica Google. Si Google no es autoridad para el correo indicado, se ofrece la alternativa de código por correo. El inicio con Google requiere un cliente OAuth y un origen autorizado; el acceso por correo requiere SMTP funcional.
 

@@ -14,14 +14,30 @@ import { dayCount } from '../lib/format';
 import { analysis, csv, quota } from '../test/fixtures';
 
 vi.mock('../maps/GeoMap', () => ({ default: ({ timestep }: { timestep?: string }) => <div aria-label="Mapa simulado para prueba de formulario" data-timestep={timestep} /> }));
-function renderPage(element: React.ReactNode, path = '/analisis', seed: unknown[] = []) {
+function renderPage(element: React.ReactNode, path = '/analisis', seed: unknown[] = [], accountQuota = quota) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } } });
-  client.setQueryData(['quota'], quota); client.setQueryData(['analyses'], seed);
+  client.setQueryData(['quota'], accountQuota); client.setQueryData(['analyses'], seed);
   const router = createMemoryRouter([{ path, element }, { path: '/analisis/:id', element: <h1>Estado del trabajo</h1> }], { initialEntries: [path] });
   render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>);
   return { client, router };
 }
 describe('analysis workflows', () => {
+  it('shows remaining cumulative area and the per-analysis trial period', async () => {
+    const user = userEvent.setup();
+    renderPage(<Wizard />, '/analisis/nuevo', [], { ...quota, analyses_used: 1, analyses_allowed: 1, max_area_ha: 10, max_date_range_days: 124, area_allowance_ha: 10, area_used_ha: 3, area_remaining_ha: 7 });
+    expect(screen.getByText('ha disponibles')).toBeInTheDocument();
+    expect(screen.getByText('124 días (aproximadamente 4 meses)')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Importar CSV' }));
+    await user.click(screen.getByText('Pegar coordenadas en vez de cargar un archivo'));
+    await user.type(screen.getByLabelText('Coordenadas CSV'), csv);
+    await user.click(screen.getByRole('button', { name: 'Cargar coordenadas' }));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByText(/Este límite no se acumula entre análisis/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByRole('button', { name: 'Procesar área' })).toBeEnabled();
+    expect(screen.getByText(/incluso si ya analizaste esa zona/)).toBeInTheDocument();
+  });
   it('shows all states and filters by name', async () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(quota), { headers: { 'content-type': 'application/json' } })));
