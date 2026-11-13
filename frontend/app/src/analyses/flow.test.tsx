@@ -38,6 +38,18 @@ describe('analysis workflows', () => {
     expect(screen.getByRole('button', { name: 'Procesar área' })).toBeEnabled();
     expect(screen.getByText(/incluso si ya analizaste esa zona/)).toBeInTheDocument();
   });
+  it('warns about an estimated area over the balance without replacing the server calculation', async () => {
+    const user = userEvent.setup();
+    renderPage(<Wizard />, '/analisis/nuevo', [], { ...quota, max_area_ha: 10, area_allowance_ha: 10, area_used_ha: 9.9, area_remaining_ha: .1 });
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Importar CSV' }));
+    await user.click(screen.getByText('Pegar coordenadas en vez de cargar un archivo'));
+    await user.type(screen.getByLabelText('Coordenadas CSV'), csv);
+    await user.click(screen.getByRole('button', { name: 'Cargar coordenadas' }));
+    expect(screen.getByText(/El servidor calculará el área definitiva/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByRole('heading', { name: 'Elige el periodo y la configuración' })).toBeInTheDocument();
+  });
   it('shows all states and filters by name', async () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(quota), { headers: { 'content-type': 'application/json' } })));

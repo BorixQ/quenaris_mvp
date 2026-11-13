@@ -22,6 +22,8 @@ class Migration(migrations.Migration):
         migrations.RunPython(convert_standard_trial_accounts, migrations.RunPython.noop),
         migrations.AlterField(model_name="userquota", name="area_allowance_ha", field=models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, default=Decimal("10"), validators=[MinValueValidator(Decimal("0"))], help_text="Saldo total de hectáreas; vacío conserva la cuota por cantidad de análisis")),
         migrations.AlterField(model_name="userquota", name="max_date_range_days", field=models.PositiveIntegerField(default=124, help_text="Rango máximo de fechas en días")),
+        migrations.AlterField(model_name="userquota", name="analyses_allowed", field=models.PositiveIntegerField(default=1, help_text="Solo se aplica si el saldo de hectáreas está vacío")),
+        migrations.AlterField(model_name="userquota", name="analyses_used", field=models.PositiveIntegerField(default=0, help_text="Número histórico de análisis completados o reservados")),
         migrations.AddConstraint(model_name="userquota", constraint=models.CheckConstraint(condition=Q(area_allowance_ha__gte=0) | Q(area_allowance_ha__isnull=True), name="quota_area_allowance_nonnegative")),
         migrations.AddConstraint(model_name="userquota", constraint=models.CheckConstraint(condition=Q(area_used_ha__gte=0), name="quota_area_used_nonnegative")),
     ]

@@ -6,7 +6,7 @@ import type { Polygon } from 'geojson';
 import type { Draft, Quota } from '../types';
 import { dayCount } from './format';
 import { presets } from '../data/studies';
-import { maxTerrain, periodLabel, quotaRemaining, usesAreaQuota } from './quota';
+import { periodLabel, quotaRemaining, usesAreaQuota } from './quota';
 
 export function polygonError(p: Polygon | null): string | null {
   if (!p) return 'Dibuja un polígono o importa sus coordenadas en CSV.';
@@ -40,9 +40,6 @@ export function validateDraft(d: Draft, q: Quota): Record<string, string> {
   const errors: Record<string, string> = {};
   if (d.name.length > 120) errors.name = 'El nombre admite hasta 120 caracteres.';
   const polygon = polygonError(d.aoi); if (polygon) errors.aoi = polygon;
-  const ha = hectares(d.aoi);
-  const limit = maxTerrain(q);
-  if (ha !== null && ha > limit * 1.001) errors.aoi = `La superficie aproximada supera ${limit.toFixed(4)} ha disponibles para este terreno. El servidor comprobará el área exacta.`;
   const days = dayCount(d.date_start, d.date_end);
   if (!Number.isFinite(days) || days <= 0) errors.date_end = 'La fecha de fin debe ser posterior al inicio.';
   else if (days > q.max_date_range_days) errors.date_end = `El periodo supera tu límite de ${periodLabel(q.max_date_range_days)}.`;

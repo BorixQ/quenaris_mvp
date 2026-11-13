@@ -33,7 +33,7 @@ describe('geometry and operational validation', () => {
     expect(validateDraft({ ...draft, indices: ['Slope'] }, quota).indices).toBeTruthy();
     expect(validateDraft({ ...draft, n_clusters: 13 }, quota).n_clusters).toBeTruthy();
     expect(validateDraft({ ...draft, aoi: null }, quota).aoi).toBeTruthy();
-    expect(validateDraft(draft, { ...quota, max_area_ha: .1 }).aoi).toBeTruthy();
+    expect(validateDraft(draft, { ...quota, max_area_ha: .1 }).aoi).toBeUndefined(); // The server measures area definitively.
   });
   it('accepts periods over one year only when the account quota permits them', () => {
     const extended = { ...draft, date_start: '2024-01-01', date_end: '2025-02-04' };
@@ -45,7 +45,7 @@ describe('geometry and operational validation', () => {
     const trial = { ...quota, analyses_allowed: 1, analyses_used: 1, max_area_ha: 10, max_date_range_days: 124, area_allowance_ha: 10, area_used_ha: 3, area_remaining_ha: 7 };
     expect(validateDraft(draft, trial).quota).toBeUndefined();
     expect(validateDraft(draft, { ...trial, area_remaining_ha: 0 }).quota).toMatch(/hectáreas/);
-    expect(validateDraft(draft, { ...trial, area_remaining_ha: .01 }).aoi).toMatch(/saldo|disponibles/);
+    expect(validateDraft(draft, { ...trial, area_remaining_ha: .01 }).aoi).toBeUndefined();
   });
 });
 describe('authenticated requests', () => {

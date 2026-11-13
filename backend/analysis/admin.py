@@ -62,9 +62,13 @@ admin.site.register(User, CustomUserAdmin)
 
 @admin.register(UserQuota)
 class UserQuotaAdmin(admin.ModelAdmin):
-    list_display = ("user", "area_used_ha", "area_allowance_ha", "analyses_used", "analyses_allowed", "max_area_ha")
+    list_display = ("user", "area_used_ha", "area_allowance_ha", "analyses_used", "legacy_analysis_limit", "max_area_ha")
     readonly_fields = ("area_used_ha",)
     search_fields = ("user__username", "user__email")
+
+    @admin.display(description="Límite por cantidad")
+    def legacy_analysis_limit(self, obj):
+        return obj.analyses_allowed if obj.area_allowance_ha is None else "No aplica"
 
 
 from .models import GoogleIdentity

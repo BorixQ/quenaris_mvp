@@ -120,8 +120,8 @@ class UserQuota(models.Model):
         on_delete=models.CASCADE,
         related_name="quota"
     )
-    analyses_allowed = models.PositiveIntegerField(default=1, help_text="Número de análisis permitidos")
-    analyses_used = models.PositiveIntegerField(default=0, help_text="Número de análisis realizados")
+    analyses_allowed = models.PositiveIntegerField(default=1, help_text="Solo se aplica si el saldo de hectáreas está vacío")
+    analyses_used = models.PositiveIntegerField(default=0, help_text="Número histórico de análisis completados o reservados")
     max_area_ha = models.FloatField(default=10.0, help_text="Área máxima permitida por análisis en hectáreas")
     max_date_range_days = models.PositiveIntegerField(default=124, help_text="Rango máximo de fechas en días")
     area_allowance_ha = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, default=Decimal("10"), validators=[MinValueValidator(Decimal("0"))], help_text="Saldo total de hectáreas; vacío conserva la cuota por cantidad de análisis")
