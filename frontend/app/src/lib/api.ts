@@ -17,7 +17,7 @@ export async function api<T>(path: string, init: RequestInit & { auth?: boolean 
   const { auth = true, ...options } = init;
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
-  if (options.body) headers.set('Content-Type', 'application/json');
+  if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   if (auth && token()) headers.set('Authorization', `Token ${token()}`);
   let response: Response;
   try { response = await fetch(`/api${path}`, { ...options, headers, credentials: 'omit' }); }

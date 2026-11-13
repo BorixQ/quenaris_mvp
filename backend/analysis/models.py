@@ -30,6 +30,10 @@ class AnalysisRequest(models.Model):
     # Nombre dado por el usuario para identificar/reutilizar el análisis.
     name = models.CharField(max_length=120, blank=True, default="")
 
+    # Null means private. Revoking removes the capability; enabling again issues
+    # a fresh link so a previously shared URL never silently becomes valid again.
+    share_token = models.UUIDField(null=True, unique=True, editable=False)
+
     # Área de Interés. SRID 4326 (WGS84) — el estándar de GeoJSON.
     aoi = gis_models.PolygonField(srid=4326, help_text="Polígono GeoJSON dibujado por el usuario")
 
@@ -111,6 +115,33 @@ class AnalysisResult(models.Model):
 
     def __str__(self):
         return f"Result for {self.request_id}"
+
+
+class ReceivedAnalysis(models.Model):
+    """A link explicitly saved by its recipient; saving never extends access."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="received_analyses")
+    analysis = models.ForeignKey(AnalysisRequest, on_delete=models.CASCADE, related_name="recipients")
+    share_token = models.UUIDField(editable=False)
+    name = models.CharField(max_length=120, blank=True, default="")
+    saved_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-saved_at", "-pk"]
+        constraints = [models.UniqueConstraint(fields=["user", "analysis"], name="received_user_analysis_unique")]
+
+
+class FeaturedAnalysis(models.Model):
+    """An administrator's public selection, bound to the current shared link."""
+    analysis = models.OneToOneField(AnalysisRequest, on_delete=models.CASCADE, related_name="feature")
+    share_token = models.UUIDField(editable=False)
+    description = models.CharField(max_length=320, blank=True, default="")
+    thumbnail_data = models.BinaryField(null=True, editable=False)
+    thumbnail_version = models.UUIDField(null=True, editable=False)
+    featured_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, editable=False)
+    featured_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-featured_at", "-pk"]
 
 
 class UserQuota(models.Model):

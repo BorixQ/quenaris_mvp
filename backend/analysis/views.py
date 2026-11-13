@@ -18,6 +18,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from rest_framework import status, viewsets
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.parsers import JSONParser
@@ -27,9 +28,10 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from .authentication import issue_token, LoginIPThrottle, LoginAccountThrottle, EmailOrUsernameTokenSerializer
-from .models import AnalysisRequest, UserQuota, GoogleIdentity, GoogleAccessGrant
+from .models import AnalysisRequest, FeaturedAnalysis, UserQuota, GoogleIdentity, GoogleAccessGrant
 from .self_registration import email_matches, lock_identity, normalized_email
-from .serializers import AnalysisRequestCreateSerializer, AnalysisRequestDetailSerializer, ProfileSerializer
+from .serializers import (AnalysisRequestCreateSerializer, AnalysisRequestDetailSerializer,
+                          AnalysisSharingSerializer, SharedAnalysisSerializer, ProfileSerializer)
 from .lifecycle import mark_failed
 from .quota import chargeable_area, quota_error, quota_for
 from .tasks import run_geospatial_analysis
@@ -72,7 +74,7 @@ class AnalysisViewSet(PrivateResponseMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Public API is owner-only, including staff. Staff manages all via private admin.
-        return AnalysisRequest.objects.filter(user=self.request.user).select_related("result")
+        return AnalysisRequest.objects.filter(user=self.request.user).select_related("result", "feature").defer("feature__thumbnail_data")
 
     def get_serializer_class(self):
         return AnalysisRequestCreateSerializer if self.action == "create" else AnalysisRequestDetailSerializer
@@ -116,26 +118,96 @@ class AnalysisViewSet(PrivateResponseMixin, viewsets.ModelViewSet):
             obj.delete()
         return Response(status=204)
 
+    @action(detail=True, methods=["post"], url_path="sharing")
+    def sharing(self, request, pk=None):
+        serializer = AnalysisSharingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        enabled = serializer.validated_data["enabled"]
+        with transaction.atomic():
+            obj = get_object_or_404(
+                AnalysisRequest.objects.select_for_update(), pk=pk, user=request.user,
+            )
+            if enabled and (obj.status != "COMPLETED" or not hasattr(obj, "result")):
+                return Response({"detail": "Solo puedes compartir un análisis completado con resultados."}, status=409)
+            obj.share_token = (obj.share_token or uuid.uuid4()) if enabled else None
+            obj.save(update_fields=["share_token"])
+            if not enabled:
+                FeaturedAnalysis.objects.filter(analysis=obj).delete()
+        return Response({
+            "sharing_enabled": bool(obj.share_token),
+            "share_path": f"/compartido/{obj.share_token}" if obj.share_token else None,
+        })
+
+    @action(detail=True, methods=["post"], url_path="featured")
+    def featured(self, request, pk=None):
+        from .discovery import feature_response
+        return feature_response(request, analysis_id=pk, owner_id=request.user.pk)
+
+    @action(detail=True, methods=["post", "delete"], url_path="featured-image")
+    def featured_image(self, request, pk=None):
+        from .discovery import thumbnail_update
+        return thumbnail_update(request, analysis_id=pk, owner_id=request.user.pk)
+
 
 class ProtectedHeatmapView(PrivateResponseMixin, APIView):
     def get(self, request, analysis_id, index, timestep, artifact_attempt=None):
         analysis = get_object_or_404(AnalysisRequest.objects.select_related("result"),pk=analysis_id,user=request.user,status="COMPLETED")
-        result = getattr(analysis,"result",None)
-        layers = result.heatmap_layers if result else None
-        if (not layers or index not in layers.get("indices",[]) or timestep not in layers.get("timesteps",[])
-                or not re.fullmatch(r"[a-z0-9_]+",index) or not re.fullmatch(r"\d{4}-\d{2}",timestep)):
-            raise Http404
-        expected_attempt = layers.get("artifact_attempt")
-        if expected_attempt != (str(artifact_attempt) if artifact_attempt else None):
-            raise Http404
-        root = (Path(settings.MEDIA_ROOT)/"heatmaps").resolve()
-        folder = root/str(analysis.id)
-        if expected_attempt:
-            folder = folder/expected_attempt
-        path = (folder/index/(timestep+".png")).resolve()
-        if not path.is_relative_to(root/str(analysis.id)) or not path.is_file():
-            raise Http404
-        return FileResponse(path.open("rb"),content_type="image/png")
+        return heatmap_response(analysis, index, timestep, str(artifact_attempt) if artifact_attempt else None)
+
+
+def heatmap_response(analysis, index, timestep, artifact_attempt):
+    result = getattr(analysis, "result", None)
+    layers = result.heatmap_layers if result else None
+    if (not layers or index not in layers.get("indices", []) or timestep not in layers.get("timesteps", [])
+            or not re.fullmatch(r"[a-z0-9_]+", index) or not re.fullmatch(r"\d{4}-\d{2}", timestep)):
+        raise Http404
+    expected_attempt = layers.get("artifact_attempt")
+    if expected_attempt != artifact_attempt or (expected_attempt and not re.fullmatch(r"[a-f0-9-]{36}", expected_attempt)):
+        raise Http404
+    root = (Path(settings.MEDIA_ROOT) / "heatmaps").resolve()
+    folder = root / str(analysis.id)
+    if expected_attempt:
+        folder = folder / expected_attempt
+    path = (folder / index / (timestep + ".png")).resolve()
+    if not path.is_relative_to(root / str(analysis.id)) or not path.is_file():
+        raise Http404
+    return FileResponse(path.open("rb"), content_type="image/png")
+
+
+class SharedResponseMixin(PrivateResponseMixin):
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+        response["Referrer-Policy"] = "no-referrer"
+        return response
+
+
+def shared_analysis(share_token):
+    return get_object_or_404(
+        AnalysisRequest.objects.select_related("result"),
+        share_token=share_token, status="COMPLETED", result__isnull=False, user__is_active=True,
+    )
+
+
+class SharedAnalysisView(SharedResponseMixin, APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    http_method_names = ["get", "head", "options"]
+
+    def get(self, request, share_token):
+        obj = shared_analysis(share_token)
+        return Response(SharedAnalysisSerializer(obj, context={"share_token": share_token}).data)
+
+
+class SharedHeatmapView(SharedResponseMixin, APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    http_method_names = ["get", "head", "options"]
+
+    def get(self, request, share_token, index, timestep):
+        obj = shared_analysis(share_token)
+        layers = obj.result.heatmap_layers or {}
+        return heatmap_response(obj, index, timestep, layers.get("artifact_attempt"))
 
 
 def google_client_id():
@@ -227,6 +299,7 @@ class UserQuotaView(PrivateResponseMixin, APIView):
         quota = quota_for(request.user)
         return Response({"email":request.user.email,"first_name":request.user.first_name,
             "last_name":request.user.last_name,"is_superuser":request.user.is_superuser,
+            "is_staff":request.user.is_staff,
             "analyses_used":quota.analyses_used,"analyses_allowed":quota.analyses_allowed,
             "max_area_ha":quota.max_area_ha,"max_date_range_days":quota.max_date_range_days,
             "area_allowance_ha":float(quota.area_allowance_ha) if quota.area_allowance_ha is not None else None,

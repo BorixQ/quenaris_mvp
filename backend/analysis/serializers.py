@@ -86,6 +86,29 @@ class AnalysisRequestDetailSerializer(serializers.ModelSerializer):
     result = AnalysisResultSerializer(read_only=True)
     area_ha = serializers.FloatField(read_only=True)
     user_email = serializers.CharField(source="user.email", read_only=True)
+    sharing_enabled = serializers.SerializerMethodField()
+    share_path = serializers.SerializerMethodField()
+    is_featured = serializers.SerializerMethodField()
+    featured_description = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
+
+    def get_sharing_enabled(self, obj):
+        return bool(obj.share_token)
+
+    def get_share_path(self, obj):
+        return f"/compartido/{obj.share_token}" if obj.share_token else None
+
+    def get_is_featured(self, obj):
+        feature = getattr(obj, "feature", None)
+        return bool(obj.share_token and feature and feature.share_token == obj.share_token)
+
+    def get_featured_description(self, obj):
+        return obj.feature.description if self.get_is_featured(obj) else ""
+
+    def get_thumbnail_url(self, obj):
+        if self.get_is_featured(obj) and obj.feature.thumbnail_version:
+            return f"/api/featured/{obj.share_token}/thumbnail/{obj.feature.thumbnail_version}/"
+        return None
 
     class Meta:
         model = AnalysisRequest
@@ -93,8 +116,43 @@ class AnalysisRequestDetailSerializer(serializers.ModelSerializer):
             "id", "name", "aoi", "area_ha", "date_start", "date_end",
             "n_clusters", "algorithm", "study_type", "indices", "use_pca",
             "status", "error_message", "created_at", "finished_at", "result",
-            "user_email"
+            "user_email", "sharing_enabled", "share_path", "is_featured", "featured_description", "thumbnail_url"
         ]
+
+
+class AnalysisSharingSerializer(serializers.Serializer):
+    enabled = serializers.BooleanField(required=True, allow_null=False)
+
+
+class FeatureSelectionSerializer(AnalysisSharingSerializer):
+    description = serializers.CharField(max_length=320, required=False, allow_blank=True, trim_whitespace=True)
+
+
+class SharedAnalysisResultSerializer(AnalysisResultSerializer):
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get("heatmap_layers"):
+            data["heatmap_layers"] = {
+                **data["heatmap_layers"],
+                "url_template": f"/api/shared/{self.context['share_token']}/heatmaps/{{index}}/{{timestep}}.png",
+            }
+        return data
+
+
+class SharedAnalysisSerializer(serializers.ModelSerializer):
+    """Explicit read-only allowlist: no account, quota or sharing controls."""
+    aoi = GeometryField()
+    area_ha = serializers.FloatField(read_only=True)
+    result = SharedAnalysisResultSerializer(read_only=True)
+
+    class Meta:
+        model = AnalysisRequest
+        fields = [
+            "id", "name", "aoi", "area_ha", "date_start", "date_end",
+            "n_clusters", "algorithm", "study_type", "indices", "use_pca",
+            "status", "created_at", "finished_at", "result",
+        ]
+        read_only_fields = fields
 
 
 class ProfileSerializer(serializers.Serializer):

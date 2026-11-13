@@ -18,11 +18,15 @@ Quenaris ayuda a agrónomos y técnicos a explorar diferencias dentro de un terr
 
 ## Qué permite hacer
 
+- **Portada pública y destacados:** explorar una selección de proyectos elegidos por la administración sin iniciar sesión; el login también ofrece acceso a esta galería.
 - **Mis análisis:** buscar y filtrar trabajos pendientes, en proceso, completados y fallidos; recuperar su estado después de recargar.
+- **Compartidos conmigo:** guardar enlaces recibidos, volver a abrirlos y quitarlos de tu colección. El propietario conserva el control del acceso.
 - **Nuevo análisis:** elegir un estudio, dibujar un polígono o importar coordenadas CSV, definir el periodo y revisar la cuota y los parámetros antes de enviar.
 - **Resultados:** consultar cobertura utilizable, escenas, puntuación relativa, grupos, mapas mensuales, datos técnicos, informe imprimible y vista 3D.
 - **Mapas ampliados:** dibujar en una vista que ocupa la ventana y ampliar los resultados o el relieve 3D con la leyenda y los controles visibles.
 - **Acceso privado:** entrar con usuario y contraseña o, si está configurado, con Google. Los análisis y mapas están asociados a su propietario.
+- **Compartir por enlace:** el propietario puede activar un interruptor en un análisis completado para consultar sus resultados sin iniciar sesión. Al desactivarlo se revoca el enlace y sus mapas; volver a activarlo genera uno nuevo. Consulta [funcionamiento y revisión local](docs/security/compartir-analisis.md).
+- **Selección de proyectos:** las cuentas administradoras pueden destacar proyectos propios con enlace activo o proyectos que hayan recibido, y agregar una imagen de portada. Desactivar el enlace retira también el destacado. Consulta [portada, recibidos y permisos](docs/security/descubrir-proyectos.md).
 
 Se conservan cinco estudios. Salud general y potencial de reforestación son los contextos priorizados para exploración; **estado hídrico, fitosanidad y nutrición son experimentales**. Ninguno está calibrado con observaciones de campo.
 
@@ -98,6 +102,8 @@ Las pruebas de integración del backend y de navegador requieren preparar el ent
 ## Seguridad y despliegue
 
 El Compose principal liga la aplicación y la administración a la máquina local por defecto. Los mapas privados pasan por Django y requieren autenticación y propiedad del análisis. La base de datos y los archivos de mapas están en volúmenes diferentes y deben respaldarse y restaurarse por separado.
+
+Los análisis empiezan privados. Compartir es una decisión explícita del propietario y revela la ubicación del terreno, resultados, mapas e informe a quien tenga el enlace. La vista compartida permite lectura y conserva las advertencias científicas.
 
 No incluyas `.env`, `credentials/` ni claves en Git. Antes de exponer la aplicación en una red o desplegarla en el homelab, revisa la [guía de seguridad](docs/security/README.md) y [HOMELAB.md](HOMELAB.md). El rendimiento y la restauración de copias aún deben verificarse en la laptop del homelab.
 

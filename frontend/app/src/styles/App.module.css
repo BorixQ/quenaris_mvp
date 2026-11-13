@@ -227,6 +227,98 @@
 }
 
 /* The expanded workspace keeps one MapLibre instance alive while it resizes. */
+.sharing { margin-bottom: 24px; }
+.sharingHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.sharingHeading h2 { display: flex; align-items: center; gap: 9px; font-size: 17px; margin-bottom: 8px; }
+.sharingHeading p { max-width: 720px; margin-bottom: 8px; }
+.sharingToggle { display: flex; align-items: center; gap: 9px; min-height: 44px; font-size: 12px; flex-shrink: 0; }
+.switch { width: 48px; height: 28px; border: 1px solid #667784; border-radius: 20px; padding: 3px; background: #667784; display: inline-flex; align-items: center; }
+.switch span { display: block; width: 20px; height: 20px; border-radius: 50%; background: white; }
+.switch[aria-checked=true] { background: var(--green); border-color: var(--green); }
+.switch[aria-checked=true] span { transform: translateX(20px); }
+.switch:disabled { opacity: .65; }
+.shareLink { display: flex; align-items: flex-end; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.shareLink > div { flex: 1 1 300px; min-width: 0; }
+.shareLink label { display: block; font-size: 12px; margin-bottom: 6px; }
+.shareLink input { font-size: 12px; }
+.sharedHeader { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px clamp(18px, 4vw, 56px); background: white; border-bottom: 1px solid var(--border); }
+.sharedMain { max-width: 1440px; margin: 0 auto; padding: 32px clamp(18px, 4vw, 56px) 60px; }
+.publicNav { display: flex; align-items: center; gap: 26px; font-size: 12px; }
+.publicNav > a { text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.homeMain { max-width: 1440px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 56px) 24px; }
+.homeMain h1:focus { outline: none; }
+.homeHero { display: grid; grid-template-columns: 1.15fr 1fr; align-items: center; gap: 48px; padding: 76px 0 64px; }
+.homeHero h1 { font-size: clamp(34px, 3.6vw, 52px); line-height: 1.2; max-width: 720px; margin: 16px 0 24px; }
+.homeHero h1 em { font-style: normal; color: var(--green); }
+.homeHero > div > p:not(.eyebrow) { font-size: 14px; color: var(--muted); max-width: 550px; }
+.homeHero .heroNote { font-size: 11px !important; margin: 18px 0 0; }
+.heroTerrain { position: relative; background: #e6efe8; border: 1px solid #cbdccf; border-radius: 18px; min-width: 0; overflow: hidden; }
+.heroTerrain > svg { width: 100%; display: block; }
+.heroMapLabel { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; align-items: center; gap: 13px; padding: 17px; background: #ffffffed; border: 1px solid #cfdfd3; border-radius: 9px; color: var(--green); font-size: 11px; }
+.heroMapLabel strong { display: block; font-size: 12px; color: var(--ink); font-weight: 500; }
+.featuredSection { padding: 24px 0 36px; }
+.featuredSection .heading { align-items: center; }
+.featuredSection h2 { margin-bottom: 0; }
+.projectGrid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px; margin-top: 20px; }
+.projectCard { overflow: hidden; display: flex; flex-direction: column; }
+.projectPreview { position: relative; height: 148px; background: #eaf2ec; border-bottom: 1px solid #d4e2d8; }
+.projectPreview > svg { width: 100%; height: 100%; display: block; }
+.projectPreview > img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.thumbnailEditor { border-top: 1px solid var(--border); margin-top: 20px; padding-top: 16px; max-width: 720px; }
+.thumbnailEditor img { display: block; width: min(360px, 100%); height: 148px; object-fit: cover; border-radius: 8px; margin: 10px 0; }
+.thumbnailEditor input { font-size: 12px; }
+.loginForm form + p { margin-top: 12px; }
+.projectPreview > span { position: absolute; top: 13px; left: 15px; max-width: calc(100% - 30px); display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 5px; background: #ffffffed; font-size: 10px; color: #225b35; }
+.projectBody { padding: 22px; display: flex; flex: 1; flex-direction: column; }
+.projectBody h2 { font-size: 17px; line-height: 1.5; overflow-wrap: anywhere; margin-bottom: 12px; }
+.projectBody h2 a { color: var(--ink); display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; text-decoration: none; }
+.projectBody h2 a:hover { color: var(--green); text-decoration: underline; }
+.projectBody h2 a svg { flex-shrink: 0; margin-top: 4px; }
+.projectBody > p { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.projectBody > a:last-child { margin-top: auto; align-self: flex-start; color: var(--green); }
+.projectFooter { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; margin-top: auto; }
+.projectFooter > span { flex: 1 1 120px; }
+.homeSteps { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 40px; padding: 42px 0; border-top: 1px solid var(--border); }
+.homeSteps svg { color: var(--green); margin-bottom: 12px; }
+.homeSteps h2 { font-size: 17px; margin-bottom: 8px; }
+.homeSteps p { font-size: 12px; color: var(--muted); max-width: 320px; }
+.homeFooter { display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: 11px; color: var(--muted); }
+.galleryHeading { padding: 48px 0 12px; }
+.galleryHeading h1 { margin: 12px 0 18px; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 28px 0; font-size: 12px; }
+.receivedForm { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 16px; }
+.receivedForm .field { flex: 1; margin: 0; }
+.receivedForm label { font-size: 12px; }
+.receivedForm input { font-size: 12px; }
+.featureControl { margin: 20px 0 24px; }
+.featureControl h2 { display: flex; align-items: center; gap: 9px; font-size: 17px; }
+.featureControl textarea { font-size: 12px; resize: vertical; }
+.featureControl .field { margin-top: 18px; max-width: 720px; }
+.featureControl .notice { margin-bottom: 16px; }
+.featureControl > p[role=status] { margin-bottom: 0; margin-top: 12px; }
+.savedLabel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--green); margin-bottom: 0; }
+.sharedActions { margin: 16px 0 24px; }
+.loginFeatured { margin-top: 2px; }
+@media (max-width: 1050px) { .projectGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } .homeHero { gap: 28px; } .homeHero h1 { font-size: 38px; } }
+@media (max-width: 700px) {
+  .publicNav { gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .publicNav > a:first-child { display: none; }
+  .publicNav .button { padding: 8px 10px; font-size: 11px; }
+  .homeHero { grid-template-columns: 1fr; gap: 26px; padding: 38px 0 24px; }
+  .homeHero h1 { font-size: 33px; margin-bottom: 20px; }
+  .heroTerrain { max-height: 260px; }
+  .heroTerrain > svg { max-height: 260px; }
+  .homeHero .buttonRow .button { white-space: normal; }
+  .projectGrid { grid-template-columns: 1fr; gap: 18px; }
+  .homeSteps { grid-template-columns: 1fr; gap: 22px; padding: 28px 0 10px; }
+  .homeSteps p { max-width: none; }
+  .receivedForm { flex-direction: column; align-items: stretch; }
+  .receivedForm .field { width: 100%; }
+  .nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .nav a { min-width: 0; gap: 7px; font-size: 11px; }
+  .galleryHeading { padding-top: 32px; }
+}
+@media (max-width: 700px) { .sharingHeading { flex-direction: column; gap: 4px; } .sharedHeader .brand { font-size: 22px; } .sharedHeader > a:last-child { font-size: 12px; } }
 .mapExpanded { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: white; border: 0; border-radius: 0; height: 100dvh; width: 100vw; overflow: hidden; }
 .mapExpanded > .geoMap { display: flex; flex: 1 1 auto; min-height: 0; flex-direction: column; }
 .mapExpanded .mapShell { flex: 1 1 auto; min-height: 0; border-radius: 0; }
