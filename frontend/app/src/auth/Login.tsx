@@ -34,7 +34,7 @@ export default function Login() {
     try { await auth.googleSignIn(response.credential); navigate(from, { replace: true }); } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo iniciar sesión con Google.'); } finally { setBusy(false); }
   }, [auth.googleSignIn, navigate, from]);
   useEffect(() => {
-    document.title = 'Acceso · Quenaris';
+    document.title = 'Acceso · Queñaris';
     let live = true;
     if (config.data?.google_client_id) loadGoogle().then(() => {
       if (!live || !googleRef.current || !window.google) return;
@@ -63,7 +63,7 @@ export default function Login() {
     <p>Exploración satelital para acompañar el trabajo de agrónomos y técnicos. Del área de interés a los datos, con su contexto y sus límites.</p>
     <svg className={s.contour} viewBox="0 0 450 180" fill="none" aria-hidden="true"><path d="M-20 164C40 10 118 174 190 80S343 60 480 5M-20 149C44-3 123 157 189 64S350 46 480-10M-20 178C45 30 113 191 199 98S346 82 480 24M-20 191C56 50 122 205 207 116S361 101 480 39M-20 207C52 65 135 215 215 137S365 118 480 56" stroke="currentColor" strokeWidth="1.2"/><path d="m139 125 54-55 77 30-20 53-82 8Z" fill="#16653414" stroke="#166534" strokeWidth="2"/><circle cx="194" cy="70" r="4" fill="#166534"/></svg>
     <small>Sentinel-2 · Arequipa y ecosistemas altoandinos<br />Resultados exploratorios. La observación de campo sigue siendo esencial.</small>
-  </aside><main className={s.loginMain}><div className={s.loginForm}><p className={s.eyebrow}>TU ESPACIO DE TRABAJO</p><h2>Bienvenido a Quenaris</h2><p>{config.data?.public_signup ? 'Entra o crea tu cuenta para consultar tus análisis.' : 'Accede para crear y consultar tus análisis.'}</p>
+  </aside><main className={s.loginMain}><div className={s.loginForm}><p className={s.eyebrow}>TU ESPACIO DE TRABAJO</p><h2>Bienvenido a Queñaris</h2><p>{config.data?.public_signup ? 'Entra o crea tu cuenta para consultar tus análisis.' : 'Accede para crear y consultar tus análisis.'}</p>
     {location.state?.notice && <Notice tone="warning">{String(location.state.notice)}</Notice>}
     {error && <Notice tone="error">{error}</Notice>}
     <div className={s.google} ref={googleRef} role="group" aria-label="Acceso con Google" />

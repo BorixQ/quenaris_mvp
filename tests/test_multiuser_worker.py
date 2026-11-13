@@ -27,7 +27,8 @@ def test_one_worker_processes_simultaneous_users_serially():
     users = [get_user_model().objects.create_user(username=f"worker-user-{i}") for i in range(10)]
     for user in users:
         user.quota.max_area_ha = 100
-        user.quota.save(update_fields=["max_area_ha"])
+        user.quota.area_allowance_ha = 100
+        user.quota.save(update_fields=["max_area_ha", "area_allowance_ha"])
 
     started, release = threading.Event(), threading.Event()
     running, peak = 0, 0

@@ -3,8 +3,10 @@ Modelos GeoDjango — almacenan el AOI del usuario, el ciclo de vida de la
 tarea asíncrona y los resultados (clusters GeoJSON, estadísticas, informe LLM).
 """
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.contrib.gis.db import models as gis_models
 from django.db import models
 
@@ -51,6 +53,7 @@ class AnalysisRequest(models.Model):
     celery_task_id = models.CharField(max_length=64, blank=True, default="")
     last_enqueued_at = models.DateTimeField(null=True, editable=False)
     quota_charged = models.BooleanField(default=False)
+    charged_area_ha = models.DecimalField(max_digits=14, decimal_places=4, null=True, editable=False)
     attempt_token = models.UUIDField(null=True, editable=False)
     attempt_started_at = models.DateTimeField(null=True, editable=False)
     error_message = models.TextField(blank=True, default="")
@@ -117,10 +120,18 @@ class UserQuota(models.Model):
         on_delete=models.CASCADE,
         related_name="quota"
     )
-    analyses_allowed = models.PositiveIntegerField(default=1, help_text="Número de análisis permitidos")
-    analyses_used = models.PositiveIntegerField(default=0, help_text="Número de análisis realizados")
+    analyses_allowed = models.PositiveIntegerField(default=1, help_text="Solo se aplica si el saldo de hectáreas está vacío")
+    analyses_used = models.PositiveIntegerField(default=0, help_text="Número histórico de análisis completados o reservados")
     max_area_ha = models.FloatField(default=10.0, help_text="Área máxima permitida por análisis en hectáreas")
-    max_date_range_days = models.PositiveIntegerField(default=123, help_text="Rango máximo de fechas en días")
+    max_date_range_days = models.PositiveIntegerField(default=124, help_text="Rango máximo de fechas en días")
+    area_allowance_ha = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, default=Decimal("10"), validators=[MinValueValidator(Decimal("0"))], help_text="Saldo total de hectáreas; vacío conserva la cuota por cantidad de análisis")
+    area_used_ha = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"), editable=False, help_text="Hectáreas consumidas o reservadas")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(area_allowance_ha__gte=0) | models.Q(area_allowance_ha__isnull=True), name="quota_area_allowance_nonnegative"),
+            models.CheckConstraint(condition=models.Q(area_used_ha__gte=0), name="quota_area_used_nonnegative"),
+        ]
 
     def __str__(self):
         return f"Quota for {self.user.username}: {self.analyses_used}/{self.analyses_allowed}"
@@ -132,7 +143,7 @@ from django.dispatch import receiver
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_quota(sender, instance, created, **kwargs):
     if created:
-        UserQuota.objects.get_or_create(user=instance)
+        UserQuota.objects.get_or_create(user=instance, defaults={"area_allowance_ha": None} if instance.is_staff or instance.is_superuser else {})
 
 
 class GoogleIdentity(models.Model):

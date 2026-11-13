@@ -21,7 +21,7 @@ El Compose de integración acepta `GOOGLE_OAUTH_CLIENT_ID` e `INTEGRATION_FRONTE
 
 ## Cuotas y tareas
 
-La reserva de cuota y la comprobación de un único análisis activo por usuario se hacen con bloqueo de fila en PostGIS. Borrar un análisis completado no recupera la cuota consumida. Se rechaza borrar trabajos activos. Un fallo terminal o de publicación devuelve la reserva una sola vez; un reintento temporal la conserva.
+La reserva de cuota y la comprobación de un único análisis activo por usuario se hacen con bloqueo de fila en PostGIS. Las cuentas de prueba usan un saldo acumulado de hectáreas; las cuotas especiales existentes conservan su modalidad. Borrar un análisis completado no recupera la cuota consumida. Se rechaza borrar trabajos activos. Un fallo terminal o de publicación devuelve la reserva una sola vez; un reintento temporal la conserva. Ver [saldo y migración](cuotas-area.md).
 
 Cada ejecución adquiere un identificador de intento bajo bloqueo. Una entrega duplicada no ejecuta un trabajo activo reciente; un intento antiguo no puede guardar resultados ni restituir la cuota de otro. La publicación de resultados y el cambio a COMPLETED son atómicos. Un corte entre el commit y la publicación puede dejar un PENDING huérfano; la recuperación intenta volver a publicarlo sin consumir otra cuota.
 
@@ -38,7 +38,7 @@ Límites operativos, además de las cuotas asignadas en el administrador:
 | Login | 100/hora por IP; contraseña además 20/hora por cuenta |
 | Cuerpo HTTP | 128 KiB |
 | AOI | Polígono WGS84 válido, hasta 1000 vértices y 50 km² |
-| Periodo | Límite en días asignado a cada cuenta; por defecto 123 días para usuarios nuevos |
+| Periodo | Límite en días por análisis; por defecto 124 días (aproximadamente 4 meses) para cuentas de prueba |
 | Descarga estimada del composite | Hasta 24 MiB; lado de cuadrícula hasta 9500 píxeles |
 
 La estimación de descarga corresponde a la cuadrícula nominal actual de 20 m en EPSG:4326; actualizar la comprobación si cambia la descarga del pipeline. Los límites son protección de recursos, no criterios de validez científica. El worker mantiene su límite de 30 minutos y genera mapas mes a mes: ampliar la cuota temporal no garantiza que periodos largos terminen a tiempo. Los throttles usan Redis compartido y son orientativos ante concurrencia, como advierte [DRF](https://www.django-rest-framework.org/api-guide/throttling/); la reserva de cuota usa transacciones de base de datos.

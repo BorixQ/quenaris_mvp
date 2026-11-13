@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 from unittest.mock import patch, Mock
 import pytest
 from celery.exceptions import Retry
@@ -20,6 +21,7 @@ def user():
     quota = user.quota
     quota.analyses_allowed = 5
     quota.max_area_ha = 100
+    quota.area_allowance_ha = None  # This fixture exercises a custom legacy quota.
     quota.save()
     return user
 
@@ -54,25 +56,26 @@ def test_login_health_and_access(user):
 def test_new_user_quota_defaults():
     user = get_user_model().objects.create_user(username="new-user")
     assert user.quota.max_area_ha == 10.0
-    assert user.quota.max_date_range_days == 123
+    assert user.quota.max_date_range_days == 124
+    assert user.quota.area_allowance_ha == Decimal('10') and user.quota.area_used_ha == 0
 
 
-def test_new_user_limits_allow_123_days_and_reject_larger_area_or_period():
+def test_new_user_limits_allow_124_days_and_reject_larger_area_or_period():
     user = get_user_model().objects.create_user(username="new-limits")
     client = APIClient()
     client.force_authenticate(user)
     data = payload()
     data.update(date_start="2025-01-01", date_end="2025-05-04")
     too_large = client.post("/api/analyses/", data, format="json")
-    assert too_large.status_code == 400 and "supera tu límite máximo" in str(too_large.data)
+    assert too_large.status_code == 400 and "supera tu límite por terreno" in str(too_large.data)
     data["aoi"] = {"type": "Polygon", "coordinates": [[
         [-72.142, -16.322], [-72.140, -16.322], [-72.140, -16.320],
         [-72.142, -16.320], [-72.142, -16.322],
     ]]}
-    data["date_end"] = "2025-05-05"
+    data["date_end"] = "2025-05-06"
     too_long = client.post("/api/analyses/", data, format="json")
-    assert too_long.status_code == 400 and "123 días" in str(too_long.data)
-    data["date_end"] = "2025-05-04"
+    assert too_long.status_code == 400 and "124 días" in str(too_long.data)
+    data["date_end"] = "2025-05-05"
     with patch("analysis.views.run_geospatial_analysis.apply_async", return_value=Mock()):
         accepted = client.post("/api/analyses/", data, format="json")
     assert accepted.status_code == 202
@@ -210,7 +213,8 @@ def test_distinct_users_can_enqueue_analyses_at_the_same_time(user):
 
     other = get_user_model().objects.create_user(username="second-integration-user")
     other.quota.max_area_ha = 100
-    other.quota.save(update_fields=["max_area_ha"])
+    other.quota.area_allowance_ha = None
+    other.quota.save(update_fields=["max_area_ha", "area_allowance_ha"])
 
     def create(user_id):
         close_old_connections()

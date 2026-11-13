@@ -6,6 +6,7 @@ export type Algorithm = 'kmeans' | 'dbscan' | 'hdbscan';
 export interface Quota {
   email: string; first_name: string; last_name: string; is_superuser: boolean;
   analyses_used: number; analyses_allowed: number; max_area_ha: number; max_date_range_days: number;
+  area_allowance_ha?: number | null; area_used_ha?: number; area_remaining_ha?: number | null;
 }
 export interface Cluster {
   cluster_id: number; label: string; priority: string; suitability_mean: number | null; area_ha: number;

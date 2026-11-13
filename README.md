@@ -107,6 +107,7 @@ No incluyas `.env`, `credentials/` ni claves en Git. Antes de exponer la aplicac
 - [Diseño, frontend y pruebas](docs/frontend/README.md)
 - [Integración y dependencias](docs/integration/README.md)
 - [Seguridad y acceso privado](docs/security/README.md)
+- [Saldo acumulado y transición de cuotas](docs/security/cuotas-area.md)
 - [CI/CD y despliegue en el homelab](docs/integration/ci-cd-homelab.md)
 - [Registro autónomo y acceso por correo](docs/security/registro-autonomo.md)
 - [Preparación del homelab](HOMELAB.md)

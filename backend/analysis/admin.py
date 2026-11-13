@@ -8,7 +8,7 @@ from .models import AnalysisRequest, AnalysisResult
 class AnalysisRequestAdmin(admin.GISModelAdmin):
     list_display = ("id", "user", "status", "date_start", "date_end", "created_at")
     list_filter = ("status", "algorithm")
-    readonly_fields = ("celery_task_id", "last_enqueued_at", "created_at", "started_at", "finished_at", "status", "quota_charged", "attempt_token", "attempt_started_at")
+    readonly_fields = ("celery_task_id", "last_enqueued_at", "created_at", "started_at", "finished_at", "status", "quota_charged", "charged_area_ha", "attempt_token", "attempt_started_at")
 
 
 @admin.register(AnalysisResult)
@@ -46,6 +46,7 @@ class LocalUserCreationForm(UserCreationForm):
 class UserQuotaInline(admin.StackedInline):
     model = UserQuota
     can_delete = False
+    readonly_fields = ("area_used_ha",)
     verbose_name_plural = 'Límites y Cuotas de Uso'
 
 class CustomUserAdmin(UserAdmin):
@@ -61,8 +62,13 @@ admin.site.register(User, CustomUserAdmin)
 
 @admin.register(UserQuota)
 class UserQuotaAdmin(admin.ModelAdmin):
-    list_display = ("user", "analyses_used", "analyses_allowed", "max_area_ha")
+    list_display = ("user", "area_used_ha", "area_allowance_ha", "analyses_used", "legacy_analysis_limit", "max_area_ha")
+    readonly_fields = ("area_used_ha",)
     search_fields = ("user__username", "user__email")
+
+    @admin.display(description="Límite por cantidad")
+    def legacy_analysis_limit(self, obj):
+        return obj.analyses_allowed if obj.area_allowance_ha is None else "No aplica"
 
 
 from .models import GoogleIdentity

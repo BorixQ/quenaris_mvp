@@ -7,13 +7,13 @@ import { date, limaToday } from '../lib/format';
 import { ErrorState, Loading } from './UI';
 import s from '../styles/App.module.css';
 
-export function Brand() { return <Link to="/analisis" className={s.brand} aria-label="Quenaris, mis análisis"><img src="/quenaris.svg" alt="" />Quenaris</Link>; }
+export function Brand() { return <Link to="/analisis" className={s.brand} aria-label="Queñaris, mis análisis"><img src="/quenaris.svg" alt="" />Queñaris</Link>; }
 export default function Layout() {
   const auth = useAuth(), location = useLocation();
   const quota = useQuota(!!auth.token);
   useEffect(() => {
     const names = location.pathname.includes('/nuevo') ? 'Nuevo análisis' : location.pathname.includes('/perfil') ? 'Mi cuenta' : location.pathname.includes('/informe') ? 'Informe' : location.pathname.includes('/3d') ? 'Vista 3D' : 'Mis análisis';
-    document.title = `${names} · Quenaris`;
+    document.title = `${names} · Queñaris`;
     const frame = requestAnimationFrame(() => document.querySelector<HTMLElement>('#page-title')?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(frame);
   }, [location.pathname]);

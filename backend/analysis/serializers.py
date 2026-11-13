@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework_gis.fields import GeometryField
 
 from .models import AnalysisRequest, AnalysisResult
+from .quota import quota_error, quota_for
 
 
 class AnalysisRequestCreateSerializer(serializers.ModelSerializer):
@@ -61,37 +62,10 @@ class AnalysisRequestCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La cuadrícula de descarga es demasiado grande; reduce o divide el AOI.")
         request = self.context.get("request")
         if request and hasattr(request, "user") and request.user.is_authenticated:
-            user = request.user
-            
-            if not hasattr(user, 'quota'):
-                from .models import UserQuota
-                UserQuota.objects.create(user=user)
-                
-            quota = user.quota
-            
-            # 1. Límite de cantidad de análisis
-            if quota.analyses_used >= quota.analyses_allowed:
-                raise serializers.ValidationError(
-                    f"Has alcanzado tu límite de {quota.analyses_allowed} análisis permitidos. "
-                    "Contacta al administrador para extender tu cuota."
-                )
-                
-            # 2. Límite de rango de fechas
-            days_requested = (data["date_end"] - data["date_start"]).days
-            if days_requested > quota.max_date_range_days:
-                raise serializers.ValidationError(
-                    f"El rango de fechas ({days_requested} días) supera tu límite máximo de {quota.max_date_range_days} días."
-                )
-                
-            # 3. Límite de área
-            aoi = data.get("aoi")
-            if aoi:
-                # Transformar a EPSG:6933 (metros) y calcular área en hectáreas
-                area_ha = aoi.transform(6933, clone=True).area / 10_000
-                if area_ha > quota.max_area_ha:
-                    raise serializers.ValidationError(
-                        f"El área solicitada ({area_ha:.2f} ha) supera tu límite máximo de {quota.max_area_ha:.2f} ha."
-                    )
+            quota = quota_for(request.user)
+            error = quota_error(quota, data)
+            if error:
+                raise serializers.ValidationError(error)
 
         return data
 

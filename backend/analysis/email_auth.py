@@ -96,12 +96,12 @@ class EmailCodeRequestView(EmailAuthBase):
                 "code_digest": digest, "expires_at": now + CODE_LIFETIME,
                 "last_sent_at": now, "attempts": 0 if code else MAX_ATTEMPTS,
             })
-        message = (f"Tu código de acceso a Quenaris es: {code}\n\nCaduca en 10 minutos. "
+        message = (f"Tu código de acceso a Queñaris es: {code}\n\nCaduca en 10 minutos. "
                    "Si no solicitaste el código, ignora este correo.\n") if code else (
                    "Si ya tienes una cuenta, accede con tu método habitual o contacta a la administración. "
                    "Si no solicitaste este mensaje, puedes ignorarlo.\n")
         try:
-            sent = send_mail("Acceso a Quenaris", message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
+            sent = send_mail("Acceso a Queñaris", message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
             if sent != 1:
                 raise RuntimeError("Email delivery was not accepted")
         except Exception:
