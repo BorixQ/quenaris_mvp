@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import Mock, patch
 
 import pytest
+from celery.exceptions import Retry
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Polygon
 from django.db import close_old_connections
@@ -11,6 +12,7 @@ from rest_framework.test import APIClient
 
 from analysis.lifecycle import mark_failed
 from analysis.models import AnalysisRequest
+from analysis.tasks import run_geospatial_analysis
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -59,6 +61,11 @@ def test_failure_refunds_area_exactly_once_and_retry_keeps_budget():
     assert result.status_code == 202
     entry = AnalysisRequest.objects.get(pk=result.data['id'])
     user.quota.refresh_from_db(); assert user.quota.area_used_ha == entry.charged_area_ha
+    with patch('analysis.tasks.run_pipeline', side_effect=ConnectionError), patch.object(run_geospatial_analysis, 'retry', side_effect=Retry):
+        with pytest.raises(Retry):
+            run_geospatial_analysis.run(str(entry.pk))
+    entry.refresh_from_db(); user.quota.refresh_from_db()
+    assert entry.status == 'PENDING' and entry.quota_charged and user.quota.area_used_ha == entry.charged_area_ha
     assert mark_failed(entry.pk, 'fallo temporal agotado') is True
     assert mark_failed(entry.pk, 'duplicado') is False
     user.quota.refresh_from_db()
